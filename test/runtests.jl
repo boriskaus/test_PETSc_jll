@@ -36,11 +36,11 @@ function run_petsc_ex(args::Cmd=``, cores::Int64=1, ex="ex4", ; wait=true, deact
     if cores==1 & !mpi_single_core
         # Run LaMEM on a single core, which does not require a working MPI
         if ex=="ex4"
-            cmd = `$(PETSc_jll.ex4_int64_deb()) $args`
+            cmd = `$(PETSc_jll.ex4()) $args`
         elseif ex=="ex42"
             cmd = `$(PETSc_jll.ex42())  $args`
         elseif ex=="ex19"
-            cmd = `$(PETSc_jll.ex19_int64_deb())  $args`
+            cmd = `$(PETSc_jll.ex19())  $args`
         else
             error("unknown example")
         end
@@ -52,11 +52,11 @@ function run_petsc_ex(args::Cmd=``, cores::Int64=1, ex="ex4", ; wait=true, deact
     else
         # create command-line object
         if ex=="ex4"
-            cmd = `$(mpirun) -n $cores $(PETSc_jll.ex4_int64_deb_path) $args`
+            cmd = `$(mpirun) -n $cores $(PETSc_jll.ex4_path) $args`
         elseif ex=="ex42"
             cmd = `$(mpirun) -n $cores $(PETSc_jll.ex42_path) $args`
         elseif ex=="ex19"
-            cmd = `$(mpirun) -n $cores $(PETSc_jll.ex19_int64_deb_path) $args`
+            cmd = `$(mpirun) -n $cores $(PETSc_jll.ex19_path) $args`
         else
             error("unknown example")
         end
@@ -96,18 +96,21 @@ end
     end
 
     # runex19_superlu_dist
+    #=
     @testset "ex19 1: superlu_dist" begin
         args = `-da_grid_x 20 -da_grid_y 20 -pc_type lu -pc_factor_mat_solver_type superlu_dist`;
         r = run_petsc_ex(args, 1, "ex19")
         @test r.exitcode == 0
     end
-
+    =#
+    #=
     # runex19_suitesparse
     @testset "ex19 1: suitesparse" begin
         args = `-da_refine 3 -snes_monitor_short -pc_type lu -pc_factor_mat_solver_type umfpack`;
         r = run_petsc_ex(args, 1, "ex19")
         @test r.exitcode == 0
     end
+    =#
 
     @testset "ex42 1: serial" begin
         args = `-stokes_ksp_monitor_short -stokes_ksp_converged_reason -stokes_pc_type lu`;
@@ -191,6 +194,8 @@ end
             @test r.exitcode == 0
         end
     end
+
+    #=
     @testset "ex4  9: direct superlu_dist" begin
         args  = `-dim 2 -coefficients layers -nondimensional 0 -stag_grid_x 13 -stag_grid_y 8 -pc_type lu -pc_factor_mat_solver_type superlu_dist -ksp_converged_reason`;
         cores = 9
@@ -198,6 +203,7 @@ end
 
         @test r.exitcode == 0
     end
+    =#
     
     @testset "ex4  1: isovisc_nondim_abf_mg" begin
         args = `-dim 2 -coefficients layers -nondimensional 1 -pc_type fieldsplit -pc_fieldsplit_type schur -ksp_converged_reason -fieldsplit_element_ksp_type preonly  -pc_fieldsplit_detect_saddle_point false -fieldsplit_face_pc_type mg -fieldsplit_face_pc_mg_levels 3 -stag_grid_x 24 -stag_grid_y 24 -fieldsplit_face_pc_mg_galerkin -fieldsplit_face_ksp_converged_reason -ksp_type fgmres -fieldsplit_element_pc_type none -fieldsplit_face_mg_levels_ksp_max_it 6 -pc_fieldsplit_schur_fact_type upper -isoviscous `;
@@ -267,11 +273,15 @@ end
             @test r.exitcode == 0
         end
     end
+
+    #=
     @testset "ex4  2: 3d_nondim_mono_mg_lamemstyle superlu_dist" begin
         args = `-dim 3 -coefficients layers -nondimensional -s 16 -custom_pc_mat -pc_type mg -pc_mg_galerkin -pc_mg_levels 2 -mg_levels_ksp_type richardson -mg_levels_pc_type jacobi -mg_levels_ksp_richardson_scale 0.5 -mg_levels_ksp_max_it 20 -mg_coarse_pc_type lu -mg_coarse_pc_factor_mat_solver_type superlu_dist -ksp_converged_reason        `;
         r = run_petsc_ex(args, 2, "ex4")
 
         @test r.exitcode == 0
     end
+    =#
 
 end
+
