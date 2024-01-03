@@ -67,7 +67,6 @@ function run_petsc_ex(args::Cmd=``, cores::Int64=1, ex="ex4", ; wait=true, deact
 end
 
 
-wait_value = true
 @testset "ex42, ex4" begin
     @testset "ex42 1: serial" begin
         args = `-stokes_ksp_monitor_short -stokes_ksp_converged_reason -stokes_pc_type lu`;
