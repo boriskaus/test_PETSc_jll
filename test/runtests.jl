@@ -1,5 +1,6 @@
 using Test, PETSc_jll
 
+export mpirun, deactivate_multithreading, run_petsc_ex
 
 #setup MPI
 const mpiexec = if isdefined(PETSc_jll,:MPICH_jll)
@@ -35,9 +36,11 @@ function run_petsc_ex(args::Cmd=``, cores::Int64=1, ex="ex4", ; wait=true, deact
     if cores==1 & !mpi_single_core
         # Run LaMEM on a single core, which does not require a working MPI
         if ex=="ex4"
-            cmd = `$(PETSc_jll.ex4()) $args`
+            cmd = `$(PETSc_jll.ex4_int64_deb()) $args`
         elseif ex=="ex42"
             cmd = `$(PETSc_jll.ex42())  $args`
+        elseif ex=="ex19"
+            cmd = `$(PETSc_jll.ex19_int64_deb())  $args`
         else
             error("unknown example")
         end
@@ -49,9 +52,11 @@ function run_petsc_ex(args::Cmd=``, cores::Int64=1, ex="ex4", ; wait=true, deact
     else
         # create command-line object
         if ex=="ex4"
-            cmd = `$(mpirun) -n $cores $(PETSc_jll.ex4_path) $args`
+            cmd = `$(mpirun) -n $cores $(PETSc_jll.ex4_int64_deb_path) $args`
         elseif ex=="ex42"
             cmd = `$(mpirun) -n $cores $(PETSc_jll.ex42_path) $args`
+        elseif ex=="ex19"
+            cmd = `$(mpirun) -n $cores $(PETSc_jll.ex19_int64_deb_path) $args`
         else
             error("unknown example")
         end
@@ -67,7 +72,43 @@ function run_petsc_ex(args::Cmd=``, cores::Int64=1, ex="ex4", ; wait=true, deact
 end
 
 
-@testset "ex42, ex4" begin
+@testset "ex19, ex42, ex4" begin
+
+    # Note: ex19 is thew default test that PETSc performs @ the end of the installation process
+    @testset "ex19 1: iterative" begin
+        args = `-da_refine 3 -pc_type mg -ksp_type fgmres`;
+        r = run_petsc_ex(args, 1, "ex19")
+        @test r.exitcode == 0
+    end
+    
+    # testex19_mpi:
+    @testset "ex19 2: mpi" begin
+        args = `-da_refine 3 -pc_type mg -ksp_type fgmres`;
+        r = run_petsc_ex(args, 2, "ex19")
+        @test r.exitcode == 0
+    end
+
+    # runex19_fieldsplit_mumps
+    @testset "ex19 2: fieldsplit_mumps" begin
+        args = `-pc_type fieldsplit -pc_fieldsplit_block_size 4 -pc_fieldsplit_type SCHUR -pc_fieldsplit_0_fields 0,1,2 -pc_fieldsplit_1_fields 3 -fieldsplit_0_pc_type lu -fieldsplit_1_pc_type lu -snes_monitor_short -ksp_monitor_short  -fieldsplit_0_pc_factor_mat_solver_type mumps -fieldsplit_1_pc_factor_mat_solver_type mumps`;
+        r = run_petsc_ex(args, 2, "ex19")
+        @test r.exitcode == 0
+    end
+
+    # runex19_superlu_dist
+    @testset "ex19 1: superlu_dist" begin
+        args = `-da_grid_x 20 -da_grid_y 20 -pc_type lu -pc_factor_mat_solver_type superlu_dist`;
+        r = run_petsc_ex(args, 1, "ex19")
+        @test r.exitcode == 0
+    end
+
+    # runex19_suitesparse
+    @testset "ex19 1: suitesparse" begin
+        args = `-da_refine 3 -snes_monitor_short -pc_type lu -pc_factor_mat_solver_type umfpack`;
+        r = run_petsc_ex(args, 1, "ex19")
+        @test r.exitcode == 0
+    end
+
     @testset "ex42 1: serial" begin
         args = `-stokes_ksp_monitor_short -stokes_ksp_converged_reason -stokes_pc_type lu`;
         r = run_petsc_ex(args, 1, "ex42")
@@ -233,12 +274,4 @@ end
         @test r.exitcode == 0
     end
 
-
-
-
-
-   
-
-
 end
-
