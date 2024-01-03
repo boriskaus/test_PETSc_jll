@@ -75,10 +75,13 @@ wait_value = true
         @test r.exitcode == 0
     end
 
-    @testset "ex42 2: mumps" begin
-        args = `-stokes_ksp_monitor_short -stokes_ksp_converged_reason -stokes_pc_type lu -stokes_pc_factor_mat_solver_type mumps `;
-        r = run_petsc_ex(args, 2, "ex42")
-        @test r.exitcode == 0
+    if !Sys.iswindows()
+    
+        @testset "ex42 2: mumps" begin
+            args = `-stokes_ksp_monitor_short -stokes_ksp_converged_reason -stokes_pc_type lu -stokes_pc_factor_mat_solver_type mumps `;
+            r = run_petsc_ex(args, 2, "ex42")
+            @test r.exitcode == 0
+        end
     end
 
     @testset "ex42 3: redundant lu" begin
@@ -139,14 +142,15 @@ wait_value = true
     end
     =#
 
-    @testset "ex4  9: direct mumps" begin
-        args  = `-dim 2 -coefficients layers -nondimensional 0 -stag_grid_x 13 -stag_grid_y 8 -pc_type lu -pc_factor_mat_solver_type mumps -ksp_converged_reason`;
-        cores = 9
-        r = run_petsc_ex(args, cores, "ex4")
+    if !Sys.iswindows()
+            @testset "ex4  9: direct mumps" begin
+            args  = `-dim 2 -coefficients layers -nondimensional 0 -stag_grid_x 13 -stag_grid_y 8 -pc_type lu -pc_factor_mat_solver_type mumps -ksp_converged_reason`;
+            cores = 9
+            r = run_petsc_ex(args, cores, "ex4")
 
-        @test r.exitcode == 0
+            @test r.exitcode == 0
+        end
     end
-
     @testset "ex4  9: direct superlu_dist" begin
         args  = `-dim 2 -coefficients layers -nondimensional 0 -stag_grid_x 13 -stag_grid_y 8 -pc_type lu -pc_factor_mat_solver_type superlu_dist -ksp_converged_reason`;
         cores = 9
@@ -176,10 +180,12 @@ wait_value = true
     end
     =#
 
-    @testset "ex4  2: nondim_abf_lu mumps" begin
-        args = `-dim 2 -coefficients layers -pc_type fieldsplit -pc_fieldsplit_type schur -ksp_converged_reason -fieldsplit_element_ksp_type preonly  -pc_fieldsplit_detect_saddle_point false -ksp_type fgmres -fieldsplit_element_pc_type none -pc_fieldsplit_schur_fact_type upper -nondimensional -eta1 1e-2 -eta2 1.0 -isoviscous 0 -ksp_monitor -fieldsplit_element_pc_type jacobi -build_auxiliary_operator -fieldsplit_face_pc_type lu -fieldsplit_face_pc_factor_mat_solver_type mumps -stag_grid_x 32 -stag_grid_y 32        `;
-        r = run_petsc_ex(args, 2, "ex4")
-        @test r.exitcode == 0
+    if !Sys.iswindows()
+        @testset "ex4  2: nondim_abf_lu mumps" begin
+            args = `-dim 2 -coefficients layers -pc_type fieldsplit -pc_fieldsplit_type schur -ksp_converged_reason -fieldsplit_element_ksp_type preonly  -pc_fieldsplit_detect_saddle_point false -ksp_type fgmres -fieldsplit_element_pc_type none -pc_fieldsplit_schur_fact_type upper -nondimensional -eta1 1e-2 -eta2 1.0 -isoviscous 0 -ksp_monitor -fieldsplit_element_pc_type jacobi -build_auxiliary_operator -fieldsplit_face_pc_type lu -fieldsplit_face_pc_factor_mat_solver_type mumps -stag_grid_x 32 -stag_grid_y 32        `;
+            r = run_petsc_ex(args, 2, "ex4")
+            @test r.exitcode == 0
+        end
     end
 
     @testset "ex4  1: 3d_nondim_isovisc_abf_mg" begin
@@ -214,12 +220,13 @@ wait_value = true
     end
     =#
 
-    @testset "ex4  1: 3d_nondim_mono_mg_lamemstyle mumps" begin
-        args = ` -dim 3 -coefficients layers -nondimensional -s 16 -custom_pc_mat -pc_type mg -pc_mg_galerkin -pc_mg_levels 2 -mg_levels_ksp_type richardson -mg_levels_pc_type jacobi -mg_levels_ksp_richardson_scale 0.5 -mg_levels_ksp_max_it 20 -mg_coarse_pc_type lu -mg_coarse_pc_factor_mat_solver_type mumps -ksp_converged_reason        `;
-        r = run_petsc_ex(args, 1, "ex4")
-        @test r.exitcode == 0
+    if !Sys.iswindows() 
+        @testset "ex4  1: 3d_nondim_mono_mg_lamemstyle mumps" begin
+            args = ` -dim 3 -coefficients layers -nondimensional -s 16 -custom_pc_mat -pc_type mg -pc_mg_galerkin -pc_mg_levels 2 -mg_levels_ksp_type richardson -mg_levels_pc_type jacobi -mg_levels_ksp_richardson_scale 0.5 -mg_levels_ksp_max_it 20 -mg_coarse_pc_type lu -mg_coarse_pc_factor_mat_solver_type mumps -ksp_converged_reason        `;
+            r = run_petsc_ex(args, 1, "ex4")
+            @test r.exitcode == 0
+        end
     end
-
     @testset "ex4  2: 3d_nondim_mono_mg_lamemstyle superlu_dist" begin
         args = `-dim 3 -coefficients layers -nondimensional -s 16 -custom_pc_mat -pc_type mg -pc_mg_galerkin -pc_mg_levels 2 -mg_levels_ksp_type richardson -mg_levels_pc_type jacobi -mg_levels_ksp_richardson_scale 0.5 -mg_levels_ksp_max_it 20 -mg_coarse_pc_type lu -mg_coarse_pc_factor_mat_solver_type superlu_dist -ksp_converged_reason        `;
         r = run_petsc_ex(args, 2, "ex4")
