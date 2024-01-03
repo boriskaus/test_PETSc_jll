@@ -1,0 +1,4 @@
+name = "test_PETSc_jll"
+uuid = "6087adde-dd95-4294-8545-a84a118ed386"
+authors = ["Boris Kaus <kaus@uni-mainz.de>"]
+version = "0.1.0"
