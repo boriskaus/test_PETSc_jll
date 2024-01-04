@@ -1,4 +1,4 @@
-using Test, PETSc_jll
+using Test, Pkg
 
 export mpirun, deactivate_multithreading, run_petsc_ex
 
