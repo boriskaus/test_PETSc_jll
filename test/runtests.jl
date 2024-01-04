@@ -6,6 +6,10 @@ export mpirun, deactivate_multithreading, run_petsc_ex
 Pkg.add(url="https://github.com/boriskaus/LibPETSc_jll.jl")
 using PETSc_jll
 
+# Show the host platform (debug info)
+@show  PETSc_jll.host_platform
+@show  names(PETSc_jll)
+
 #setup MPI
 const mpiexec = if isdefined(PETSc_jll,:MPICH_jll)
     PETSc_jll.MPICH_jll.mpiexec()
