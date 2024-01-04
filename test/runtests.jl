@@ -2,6 +2,10 @@ using Test, PETSc_jll
 
 export mpirun, deactivate_multithreading, run_petsc_ex
 
+# ensure that we use the correct version of the package 
+Pkg.add(url="https://github.com/boriskaus/LibPETSc_jll.jl")
+using PETSc_jll
+
 #setup MPI
 const mpiexec = if isdefined(PETSc_jll,:MPICH_jll)
     PETSc_jll.MPICH_jll.mpiexec()
