@@ -3,7 +3,7 @@ using Test, Pkg
 export mpirun, deactivate_multithreading, run_petsc_ex
 
 # ensure that we use the correct version of the package 
-Pkg.add(url="https://github.com/boriskaus/LibPETSc_jll.jl")
+Pkg.add(url="https://github.com/boriskaus/PETSc_jll.jl")
 using PETSc_jll
 
 # Show the host platform (debug info)
@@ -64,7 +64,7 @@ function run_petsc_ex(args::Cmd=``, cores::Int64=1, ex="ex4", ; wait=true, deact
         elseif ex=="ex42"
             cmd = `$(mpirun) -n $cores $(PETSc_jll.ex42_path) $args`
         elseif ex=="ex19"
-            cmd = `$(mpirun) -n $cores $(PETSc_jll.ex19_path) $args`
+            cmd = `$(mpirun) -n $cores $(PETSc_jll.ex19_int64_deb_path) $args`
         else
             error("unknown example")
         end
@@ -104,13 +104,13 @@ end
     end
 
     # runex19_superlu_dist
-    #=
+    
     @testset "ex19 1: superlu_dist" begin
         args = `-da_grid_x 20 -da_grid_y 20 -pc_type lu -pc_factor_mat_solver_type superlu_dist`;
-        r = run_petsc_ex(args, 1, "ex19")
+        r = run_petsc_ex(args, 2, "ex19")
         @test r.exitcode == 0
     end
-    =#
+    
     #=
     # runex19_suitesparse
     @testset "ex19 1: suitesparse" begin
