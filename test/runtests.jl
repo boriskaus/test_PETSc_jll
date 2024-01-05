@@ -3,6 +3,9 @@ using Test, Pkg
 export mpirun, deactivate_multithreading, run_petsc_ex
 
 # ensure that we use the correct version of the package 
+Pkg.add(url="https://github.com/boriskaus/SuperLU_DIST_jll.jl")
+using SuperLU_DIST_jll
+
 Pkg.add(url="https://github.com/boriskaus/PETSc_jll.jl")
 using PETSc_jll
 
@@ -48,7 +51,7 @@ function run_petsc_ex(args::Cmd=``, cores::Int64=1, ex="ex4", ; wait=true, deact
         elseif ex=="ex42"
             cmd = `$(PETSc_jll.ex42())  $args`
         elseif ex=="ex19"
-            cmd = `$(PETSc_jll.ex19())  $args`
+            cmd = `$(PETSc_jll.ex19_int64_deb())  $args`
         else
             error("unknown example")
         end
@@ -64,7 +67,7 @@ function run_petsc_ex(args::Cmd=``, cores::Int64=1, ex="ex4", ; wait=true, deact
         elseif ex=="ex42"
             cmd = `$(mpirun) -n $cores $(PETSc_jll.ex42_path) $args`
         elseif ex=="ex19"
-            cmd = `$(mpirun) -n $cores $(PETSc_jll.ex19_path) $args`
+            cmd = `$(mpirun) -n $cores $(PETSc_jll.ex19_int64_deb_path) $args`
         else
             error("unknown example")
         end
@@ -104,8 +107,10 @@ end
     end
 
     # runex19_superlu_dist
-    @testset "ex19 1: superlu_dist" begin
-        args = `-da_grid_x 20 -da_grid_y 20 -pc_type lu -pc_factor_mat_solver_type superlu_dist`;
+    @testset "ex19 2: fieldsplit_superlu_dist" begin
+        #args = `-da_grid_x 20 -da_grid_y 20 -pc_type lu -pc_factor_mat_solver_type superlu_dist`;
+        args = `-pc_type fieldsplit -pc_fieldsplit_block_size 4 -pc_fieldsplit_type SCHUR -pc_fieldsplit_0_fields 0,1,2 -pc_fieldsplit_1_fields 3 -fieldsplit_0_pc_type lu -fieldsplit_1_pc_type lu -snes_monitor_short -ksp_monitor_short  -fieldsplit_0_pc_factor_mat_solver_type superlu_dist -fieldsplit_1_pc_factor_mat_solver_type superlu_dist`;
+        
         r = run_petsc_ex(args, 2, "ex19")
         @test r.exitcode == 0
     end
@@ -189,17 +194,17 @@ end
     end
     =#
 
-    @testset "ex4  9: direct mumps" begin
+    @testset "ex4  4: direct mumps" begin
         args  = `-dim 2 -coefficients layers -nondimensional 0 -stag_grid_x 13 -stag_grid_y 8 -pc_type lu -pc_factor_mat_solver_type mumps -ksp_converged_reason`;
-        cores = 9
+        cores = 4
         r = run_petsc_ex(args, cores, "ex4")
         @test r.exitcode == 0
     end
 
     
-    @testset "ex4  9: direct superlu_dist" begin
+    @testset "ex4  4: direct superlu_dist" begin
         args  = `-dim 2 -coefficients layers -nondimensional 0 -stag_grid_x 13 -stag_grid_y 8 -pc_type lu -pc_factor_mat_solver_type superlu_dist -ksp_converged_reason`;
-        cores = 9
+        cores = 4
         r = run_petsc_ex(args, cores, "ex4")
 
         @test r.exitcode == 0
