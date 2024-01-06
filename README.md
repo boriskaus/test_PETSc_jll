@@ -60,7 +60,7 @@ using PETSc_jll
 You can build local versions of the library like this and upload it to your local directory with:
 
 ```julia
-julia build_tarballs.jl --debug --verbose --deploy="boriskaus/PETSc_jll.jl" aarch64-apple-darwin-libgfortran5-mpi+mpich,x86_64-linux-gnu-libgfortran5-mpi+mpich,x86_64-w64-mingw32-libgfortran5-mpi+microsoftmpi,x86_64-apple-darwin-libgfortran4-mpi+mpich,x86_64-w64-mingw32-libgfortran4-mpi+microsoftmpi,x86_64-linux-gnu-libgfortran4-mpi+mpich
+julia build_tarballs.jl --debug --verbose --deploy="boriskaus/PETSc_jll.jl" aarch64-apple-darwin-libgfortran5-mpi+mpich,x86_64-linux-gnu-libgfortran5-mpi+mpich,x86_64-w64-mingw32-libgfortran5-mpi+microsoftmpi,x86_64-apple-darwin-libgfortran4-mpi+mpich,x86_64-w64-mingw32-libgfortran4-mpi+microsoftmpi,x86_64-linux-gnu-libgfortran4-mpi+mpich,x86_64-apple-darwin-libgfortran5-mpi+mpich
 ```
 Note that I also compile a few additional versions for linux/windows/mac which appear to be the ones that the github CI system uses.
 
@@ -78,10 +78,19 @@ Yet, what is the issue? In the following I will stepwise increase the complexity
 
 
 ##### Basic installation, no MPI, downloaded BLASLAPACK, windows only
-The most basic installation is [build_tarballs_noMPI_downloadBLAS.jl](./build_scripts/build_tarballs_noMPI_downloadBLAS.jl) which we will compile on 1.9/1.10
+The most basic installation is [build_tarballs_noMPI_downloadBLAS.jl](./build_scripts/build_tarballs_noMPI_downloadBLAS.jl) which we will compile on 1.9/1.10. 
 
+I've compiled the PETSc library with:
+```
+julia build_tarballs_noMPI_downloadBLAS.jl --debug --verbose --deploy="boriskaus/PETSc_jll.jl" x86_64-w64-mingw32-libgfortran5-mpi+microsoftmpi,x86_64-w64-mingw32-libgfortran4-mpi+microsoftmpi
+```
 
-
+shockingly, not even this [works](https://github.com/boriskaus/test_PETSc_jll/actions/runs/7432642556/job/20224687746). Whereas it did not crash upon precompiling it, it [segfaults](https://github.com/boriskaus/test_PETSc_jll/actions/runs/7432642556/job/20224687746#step:6:136) when running. As we did not compile this version with debug options, we have little info.
+As a next step, I activate debugging and compile it for more systems so we can test on linux/mac as well:
+```
+julia build_tarballs.jl --debug --verbose --deploy="boriskaus/PETSc_jll.jl" aarch64-apple-darwin-libgfortran5-mpi+mpich,x86_64-linux-gnu-libgfortran5-mpi+mpich,x86_64-w64-mingw32-libgfortran5-mpi+microsoftmpi,x86_64-apple-darwin-lib
+gfortran5-mpi+mpich
+``` 
 
 
 
