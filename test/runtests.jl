@@ -3,7 +3,7 @@ using Test, Pkg
 export mpirun, deactivate_multithreading, run_petsc_ex
 
 # ensure that we use the correct version of the package 
-Pkg.add(url="https://github.com/boriskaus/PETSc_jll.jl")
+#Pkg.add(url="https://github.com/boriskaus/PETSc_jll.jl")
 #Pkg.add("PETSc_jll.jl")
 using PETSc_jll
 
@@ -91,52 +91,54 @@ is_parallel = false;
 
 @testset "ex19, ex42, ex4" begin
 
-    # Note: ex19 is thew default test that PETSc performs @ the end of the installation process
-    @testset "ex19 1: iterative" begin
-        args = `-da_refine 3 -pc_type mg -ksp_type fgmres`;
-        r = run_petsc_ex(args, 1, "ex19")
-        @test r.exitcode == 0
-    end
-    
-    # testex19_mpi:
-    @testset "ex19 2: mpi" begin
-        if is_parallel
+    if any(names(PETSc_jll) .== :ex19)
+        # Note: ex19 is thew default test that PETSc performs @ the end of the installation process
+        @testset "ex19 1: iterative" begin
             args = `-da_refine 3 -pc_type mg -ksp_type fgmres`;
-            r = run_petsc_ex(args, 2, "ex19")
-            @test r.exitcode == 0
-        end
-    end
-
-    # runex19_fieldsplit_mumps
-    @testset "ex19 2: fieldsplit_mumps" begin
-        if test_mumps & is_parallel
-            args = `-pc_type fieldsplit -pc_fieldsplit_block_size 4 -pc_fieldsplit_type SCHUR -pc_fieldsplit_0_fields 0,1,2 -pc_fieldsplit_1_fields 3 -fieldsplit_0_pc_type lu -fieldsplit_1_pc_type lu -snes_monitor_short -ksp_monitor_short  -fieldsplit_0_pc_factor_mat_solver_type mumps -fieldsplit_1_pc_factor_mat_solver_type mumps`;
-            r = run_petsc_ex(args, 2, "ex19")
-            @test r.exitcode == 0
-        end
-    end
-
-    # runex19_superlu_dist
-    @testset "ex19 2: fieldsplit_superlu_dist" begin
-        if test_superlu_dist & is_parallel
-            #args = `-da_grid_x 20 -da_grid_y 20 -pc_type lu -pc_factor_mat_solver_type superlu_dist`;
-            args = `-pc_type fieldsplit -pc_fieldsplit_block_size 4 -pc_fieldsplit_type SCHUR -pc_fieldsplit_0_fields 0,1,2 -pc_fieldsplit_1_fields 3 -fieldsplit_0_pc_type lu -fieldsplit_1_pc_type lu -snes_monitor_short -ksp_monitor_short  -fieldsplit_0_pc_factor_mat_solver_type superlu_dist -fieldsplit_1_pc_factor_mat_solver_type superlu_dist`;
-            
-            r = run_petsc_ex(args, 2, "ex19")
-            @test r.exitcode == 0
-        end
-    end
-    
-    
-    # runex19_suitesparse
-    @testset "ex19 1: suitesparse" begin
-        if test_suitesparse
-            args = `-da_refine 3 -snes_monitor_short -pc_type lu -pc_factor_mat_solver_type umfpack`;
             r = run_petsc_ex(args, 1, "ex19")
             @test r.exitcode == 0
         end
+        
+        # testex19_mpi:
+        @testset "ex19 2: mpi" begin
+            if is_parallel
+                args = `-da_refine 3 -pc_type mg -ksp_type fgmres`;
+                r = run_petsc_ex(args, 2, "ex19")
+                @test r.exitcode == 0
+            end
+        end
+
+        # runex19_fieldsplit_mumps
+        @testset "ex19 2: fieldsplit_mumps" begin
+            if test_mumps & is_parallel
+                args = `-pc_type fieldsplit -pc_fieldsplit_block_size 4 -pc_fieldsplit_type SCHUR -pc_fieldsplit_0_fields 0,1,2 -pc_fieldsplit_1_fields 3 -fieldsplit_0_pc_type lu -fieldsplit_1_pc_type lu -snes_monitor_short -ksp_monitor_short  -fieldsplit_0_pc_factor_mat_solver_type mumps -fieldsplit_1_pc_factor_mat_solver_type mumps`;
+                r = run_petsc_ex(args, 2, "ex19")
+                @test r.exitcode == 0
+            end
+        end
+
+        # runex19_superlu_dist
+        @testset "ex19 2: fieldsplit_superlu_dist" begin
+            if test_superlu_dist & is_parallel
+                #args = `-da_grid_x 20 -da_grid_y 20 -pc_type lu -pc_factor_mat_solver_type superlu_dist`;
+                args = `-pc_type fieldsplit -pc_fieldsplit_block_size 4 -pc_fieldsplit_type SCHUR -pc_fieldsplit_0_fields 0,1,2 -pc_fieldsplit_1_fields 3 -fieldsplit_0_pc_type lu -fieldsplit_1_pc_type lu -snes_monitor_short -ksp_monitor_short  -fieldsplit_0_pc_factor_mat_solver_type superlu_dist -fieldsplit_1_pc_factor_mat_solver_type superlu_dist`;
+                
+                r = run_petsc_ex(args, 2, "ex19")
+                @test r.exitcode == 0
+            end
+        end
+        
+        
+        # runex19_suitesparse
+        @testset "ex19 1: suitesparse" begin
+            if test_suitesparse
+                args = `-da_refine 3 -snes_monitor_short -pc_type lu -pc_factor_mat_solver_type umfpack`;
+                r = run_petsc_ex(args, 1, "ex19")
+                @test r.exitcode == 0
+            end
+        end
     end
-    
+
     @testset "ex42 1: serial" begin
         args = `-stokes_ksp_monitor_short -stokes_ksp_converged_reason -stokes_pc_type lu`;
         r = run_petsc_ex(args, 1, "ex42")

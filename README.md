@@ -88,9 +88,15 @@ julia build_tarballs_noMPI_downloadBLAS.jl --debug --verbose --deploy="boriskaus
 shockingly, not even this [works](https://github.com/boriskaus/test_PETSc_jll/actions/runs/7432642556/job/20224687746). Whereas it did not crash upon precompiling it, it [segfaults](https://github.com/boriskaus/test_PETSc_jll/actions/runs/7432642556/job/20224687746#step:6:136) when running. As we did not compile this version with debug options, we have little info.
 As a next step, I activate debugging and compile it for more systems so we can test on linux/mac as well:
 ```
-julia build_tarballs.jl --debug --verbose --deploy="boriskaus/PETSc_jll.jl" aarch64-apple-darwin-libgfortran5-mpi+mpich,x86_64-linux-gnu-libgfortran5-mpi+mpich,x86_64-w64-mingw32-libgfortran5-mpi+microsoftmpi,x86_64-apple-darwin-lib
-gfortran5-mpi+mpich
+julia build_tarballs.jl --debug --verbose --deploy="boriskaus/PETSc_jll.jl" aarch64-apple-darwin-libgfortran5-mpi+mpich,x86_64-linux-gnu-libgfortran5-mpi+mpich,x86_64-w64-mingw32-libgfortran5-mpi+microsoftmpi,x86_64-apple-darwin-libgfortran5-mpi+mpich,x86_64-apple-darwin-libgfortran4-mpi+mpich
 ``` 
+Turns out that this works fine on linux/mac but not windows, see [here](https://github.com/boriskaus/test_PETSc_jll/actions/runs/7433190048)
 
+So the mystery remains: why is it failing in windows? It certainly worked fine previously, as LaMEM 1.2.4 compiles fine with [PETSc 3.16.8](https://github.com/JuliaGeodynamics/LaMEM.jl/actions/runs/7349955247/job/20010768089)  and LaMEM 2.1.2 works with [PETSc 3.18.7](https://github.com/JuliaGeodynamics/LaMEM.jl/actions/runs/7349955247/job/20010768089). Yet none of them work with julia 1.10, because of an issue with [libspqr.so.2](https://github.com/JuliaGeodynamics/LaMEM.jl/actions/runs/7349955247/job/20010768089#step:6:41) which appears to be part of SuiteSparse. 
+Note that the windows compilation features a problem in [precompilation](https://github.com/JuliaGeodynamics/LaMEM.jl/actions/runs/7391374810/job/20108073568?pr=21#step:6:416).
+
+
+##### Previous versions of PETSc_jll
+So what if we test previous versions of PETSc?
 
 
