@@ -51,7 +51,7 @@ function run_petsc_ex(args::Cmd=``, cores::Int64=1, ex="ex4", ; wait=true, deact
         elseif ex=="ex42"
             cmd = `$(PETSc_jll.ex42())  $args`
         elseif ex=="ex19"
-            cmd = `$(PETSc_jll.ex19_int64_deb())  $args`
+            cmd = `$(PETSc_jll.ex19())  $args`
         else
             error("unknown example")
         end
