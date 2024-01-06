@@ -4,6 +4,7 @@ export mpirun, deactivate_multithreading, run_petsc_ex
 
 # ensure that we use the correct version of the package 
 Pkg.add(url="https://github.com/boriskaus/PETSc_jll.jl")
+#Pkg.add("PETSc_jll.jl")
 using PETSc_jll
 
 # Show the host platform (debug info)
@@ -48,7 +49,7 @@ function run_petsc_ex(args::Cmd=``, cores::Int64=1, ex="ex4", ; wait=true, deact
         elseif ex=="ex42"
             cmd = `$(PETSc_jll.ex42())  $args`
         elseif ex=="ex19"
-            cmd = `$(PETSc_jll.ex19())  $args`
+            cmd = `$(PETSc_jll.ex19_int64_deb())  $args`
         else
             error("unknown example")
         end
@@ -64,7 +65,7 @@ function run_petsc_ex(args::Cmd=``, cores::Int64=1, ex="ex4", ; wait=true, deact
         elseif ex=="ex42"
             cmd = `$(mpirun) -n $cores $(PETSc_jll.ex42_path) $args`
         elseif ex=="ex19"
-            cmd = `$(mpirun) -n $cores $(PETSc_jll.ex19_path) $args`
+            cmd = `$(mpirun) -n $cores $(PETSc_jll.ex19_int64_deb_path) $args`
         else
             error("unknown example")
         end
