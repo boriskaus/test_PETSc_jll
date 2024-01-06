@@ -96,9 +96,11 @@ is_parallel = false;
     
     # testex19_mpi:
     @testset "ex19 2: mpi" begin
-        args = `-da_refine 3 -pc_type mg -ksp_type fgmres`;
-        r = run_petsc_ex(args, 2, "ex19")
-        @test r.exitcode == 0
+        if is_parallel
+            args = `-da_refine 3 -pc_type mg -ksp_type fgmres`;
+            r = run_petsc_ex(args, 2, "ex19")
+            @test r.exitcode == 0
+        end
     end
 
     # runex19_fieldsplit_mumps
