@@ -3,9 +3,6 @@ using Test, Pkg
 export mpirun, deactivate_multithreading, run_petsc_ex
 
 # ensure that we use the correct version of the package 
-Pkg.add(url="https://github.com/boriskaus/SuperLU_DIST_jll.jl")
-using SuperLU_DIST_jll
-
 Pkg.add(url="https://github.com/boriskaus/PETSc_jll.jl")
 using PETSc_jll
 
