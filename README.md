@@ -16,14 +16,14 @@ The main difficulties I see are:
 
 1. Yggdrasil and BinaryBuilder fully relies on dynamic libraries. I understand the idea behind that; the obvious drawback is that it sometimes happens that one of those libraries is updated to a newer version which is no longer compatible with your code which breaks the toolchain.  
 
-2. One of the main reasons for this to happen is that there is **no testing system** for Yggdrasil packages and no CI/CD system. So if one of the many dependencies of `PETSc_jll` is updated, no-one knows that it broke the system until a user reports that it no longer works. There is also no automatic testing versus julia nightly.
+2. The key issue is that there is **no testing system** for Yggdrasil packages and accordingly no CI/CD system. So if one of the many dependencies of `PETSc_jll` is updated, no-one knows that it broke the system until a user reports that it no longer works. There is also no automatic testing versus julia nightly.
 
-3. In the `classical` workflow you would first try to build the library for as many systems as possible, make a pull request to [Yggdrasil]() and only after that is merged (a few hours or days later) you would test this on different systems (for example as part of the `LaMEM.jl` package). [Please note that the BinaryBuilder help pages do describe how to compile it locally or upload local builds to your personal github repository, which I will use below.] 
+3. In the `classical workflow` you would first try to build the library for as many systems as possible, make a pull request to [Yggdrasil]() and only after that is merged (a few hours or days later) you would test this on different systems (for example as part of [LaMEM.jl](https://github.com/JuliaGeodynamics/LaMEM.jl). BinaryBuilder does allow you to [compile it locally](https://docs.binarybuilder.org/dev/building/#Building-a-custom-JLL-package-locally) and/or upload local builds to your [personal github repository](https://docs.binarybuilder.org/dev/FAQ/), which I will use below. 
 
-Whereas PETSc has a very sophisticated build system which downloads the correct versions of all external packages, we are not allowed to use this but should instead link to separate packages of each of the external packages. The reasoning behind this, is that it may otherwise result in clashes if a user installs a version of `libsuperlu_dist.so` (e.g., from `SuperLU_DIST_jll.jl`) whereas a library with the same name is present within the `PETSc_jll.jl` build. 
+Whereas PETSc has a very sophisticated build system which downloads the correct versions of all external packages, we can't use it but should instead link to separate packages of each of the external packages. This is because it may otherwise result in clashes if a user installs a version of `libsuperlu_dist.so` (e.g., from `SuperLU_DIST_jll.jl`) whereas a library with the same name is present within the `PETSc_jll.jl` build. 
 I do understand the reasoning behind this, but still don't fully get why I'm not allowed to use the `PETSc` installation system and rename the libraries accordingly (say to `libsuperlu_dist_petsc.so` or so). 
 
-Anyways, here we are and I have just spend the last 7 days or so trying to get `PETSc_jll.jl` working again. Likely that is because I am rather incompetent in doing this, and there are certainly many more skilful people out there that can do a better job. Unfortunately, the `PETSc` team itself seems to not want to touch anything julia related (even when the resulting BinaryBuilder packages can also be used perfectly well outside the julia world), or perhaps it is because they are not allowed to use Docker on their work machines. In any case, I'm stuck with doing this so below 
+Anyways, here we are and I have just spend the last 7 days or so trying to get `PETSc_jll.jl` working again. (Likely that is because I am rather incompetent in doing this, and there are certainly many more skilful people out there that can do a better job. Unfortunately, the `PETSc` team itself seems to not want to touch anything julia related (even when the resulting BinaryBuilder packages can also be used perfectly well outside the julia world), or perhaps it is because they are not allowed to use Docker on their work machines). 
 
 ### 2. Towards a testing framework
 
@@ -46,26 +46,42 @@ and distribute that as executable along with the PETSc libraries:
 ExecutableProduct("ex19", :ex19)
 ```
 
-I have done this for a number of examples that are particularly useful for my use cases (`ex4`, `ex42` and `ex62` in some cases). 
+I have done this for a number of examples that are particularly useful for me (`ex4`, `ex42` and `ex62` in some cases). 
 Next you can create a [runtests.jl](https://github.com/boriskaus/test_PETSc_jll/blob/main/test/runtests.jl) that runs a bunch of these tests in the `test_PETSc_jll.jl` package, which essentially mimics the `PETSc` testing system. 
 
-We can run this with the officially released versions of `PETSc_jll`, or with a version that we locally compile in our own github repository. The latter is to be preferred while testing installations as we don't need to bother the `Yggdrasil` team with non-working versions.
+We can run this either with the officially released versions of `PETSc_jll`, or with a version that we locally compiled and uploaded to our own github repository. The latter is to be preferred while testing installations, as we don't need to bother the `Yggdrasil` team with non-working versions.
 
-You can use the local version of `PETSc_jll` instead of the released version  with:
+You can use the local version of `PETSc_jll` instead of the released version with:
 ```
 Pkg.add(url="https://github.com/boriskaus/PETSc_jll.jl")
 using PETSc_jll
 ```
 
-
-3. Development workflow
-
-
-This is to test the PETSc_jll (a precompiled version of PETSc for most modern operating systems) on different versions of julia, along with the precompiled optional packages.
+You can build local versions of the library like this and upload it to your local directory with:
 
 ```julia
 julia build_tarballs.jl --debug --verbose --deploy="boriskaus/PETSc_jll.jl" aarch64-apple-darwin-libgfortran5-mpi+mpich,x86_64-linux-gnu-libgfortran5-mpi+mpich,x86_64-w64-mingw32-libgfortran5-mpi+microsoftmpi,x86_64-apple-darwin-libgfortran4-mpi+mpich,x86_64-w64-mingw32-libgfortran4-mpi+microsoftmpi,x86_64-linux-gnu-libgfortran4-mpi+mpich
 ```
+Note that I also compile a few additional versions for linux/windows/mac which appear to be the ones that the github CI system uses.
+
+Some things to keep in mind while doing this: 
+- You should name your local library as the package (so `"boriskaus/PETSc_jll.jl"` and not `"boriskaus/LibPETSc_jll.jl"`), otherwise you can;t use it later in other packages 
+- If you re-compile a package, make sure that the previous release is deleted first on the [github page](https://github.com/boriskaus/PETSc_jll.jl/releases); otherwise it can't upload it  
+- Using a powerful machine is helpful.
+
+
+### 3. Step-wise development of PETSc
+
+At the time of writing (6.1.2024) I was running into the issue that `PETSc_jll` with version 3.20.0 wouldn't even precompile anymore on windows, as can be seen here for [julia 1.9 and windows](https://github.com/boriskaus/test_PETSc_jll/actions/runs/7420510714/job/20192043786). At the same time, a simular testing framework was setup for [SuperLU_DIST_jll](https://github.com/boriskaus/test_SuperLU_DIST_jll) which worked [fine](https://github.com/boriskaus/test_SuperLU_DIST_jll/actions/runs/7422000918/job/20196454722) on windows/mac/linux for julia 1.9-1.11 in serial and parallel for version 8.2.1 which was [merged](https://github.com/JuliaPackaging/Yggdrasil/pull/7890) accordingly. Therefore it is clearly not an issue of the MicrosoftMPI being used. 
+
+Yet, what is the issue? In the following I will stepwise increase the complexity of the installation, while using CI to keep track of whether it works. This is mostly done for myself, but perhaps others may find this useful for theior packages in the futiure
+
+
+##### Basic installation, no MPI, downloaded BLASLAPACK, windows only
+The most basic installation is [build_tarballs_noMPI_downloadBLAS.jl](./build_scripts/build_tarballs_noMPI_downloadBLAS.jl)
+
+
+
 
 
 
