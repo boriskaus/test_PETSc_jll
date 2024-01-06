@@ -78,7 +78,7 @@ Yet, what is the issue? In the following I will stepwise increase the complexity
 
 
 ##### Basic installation, no MPI, downloaded BLASLAPACK, windows only
-The most basic installation is [build_tarballs_noMPI_downloadBLAS.jl](./build_scripts/build_tarballs_noMPI_downloadBLAS.jl)
+The most basic installation is [build_tarballs_noMPI_downloadBLAS.jl](./build_scripts/build_tarballs_noMPI_downloadBLAS.jl) which we will compile on 1.9/1.10
 
 
 
