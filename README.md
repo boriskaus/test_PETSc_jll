@@ -122,15 +122,13 @@ The first interesting observation is that it no longer compiles, but instead sto
 
 That is weird. We are using the same version of BB (0.5.6), so its not that.
 
-Luckily the logfiles of the original build are saved [here](https://github.com/JuliaBinaryWrappers/PETSc_jll.jl/releases/download/PETSc-v3.18.6%2B1/PETSc-logs.v3.18.6.aarch64-apple-darwin-libgfortran5-mpi+mpich.tar.gz).
-
-This shows that the original compilation used these compilers:
+Luckily the logfiles of the original build are saved [here](https://github.com/JuliaBinaryWrappers/PETSc_jll.jl/releases/download/PETSc-v3.18.6%2B1/PETSc-logs.v3.18.6.aarch64-apple-darwin-libgfortran5-mpi+mpich.tar.gz), which shows that the original compilation used these compilers:
 ```
 clang version 13.0.1 (/home/mose/.julia/dev/BinaryBuilderBase/deps/downloads/clones/llvm-project.git-1df819a03ecf6890e3787b27bfd4f160aeeeeacd50a98d003be8b0893f11a9be 75e33f71c2dae584b13a7d1186ae0a038ba98838)
 Target: arm64-apple-darwin20
 Thread model: posix
 ```
-The current version is:
+Whereas we now use
 ```
 sandbox:${WORKSPACE}/srcdir/petsc-3.18.6 # cc --version
 clang version 16.0.6 (/home/gbaraldi/.julia/dev/BinaryBuilderBase/deps/downloads/clones/llvm-project.git-1df819a03ecf6890e3787b27bfd4f160aeeeeacd50a98d003be8b0893f11a9be 7cbf1a2591520c2491aa35339f227775f4d3adf6)
@@ -148,5 +146,17 @@ build_tarballs(ARGS, name, version, sources, script, platforms, products, depend
                preferred_llvm_version=v"13")
 ```
 
-Another change is that `MPICH` now has version 4.1.2, which used to be 4.1.1. I have not fixed that in the initial build
-With 
+Another change is that `MPICH` now has version 4.1.2, which used to be 4.1.1. I have not fixed that in the initial build.
+
+With this, we can compile 3.18.6 successfully. Yet, when running the test_suite it fails on 1.10 (SuiteSparse error) and on [windows 1.9](https://github.com/boriskaus/test_PETSc_jll/actions/runs/7438273548/job/20236864198#step:6:169) with:
+```
+Allocations: 5058579 (Pool: 5053560; Big: 5019); GC: 10
+Mingw-w64 runtime failure:
+32 bit pseudo relocation at 0000000008C01CEA out of range, targeting 00007FFEA73F6530, yielding the value 00007FFE9E7F4842.
+ERROR: LoadError: Package test_PETSc_jll errored during testing (exit code: 3)
+Stacktrace:
+```
+which was also reported by an ongoing compilation of [HDF5_jll](https://github.com/eschnett/Yggdrasil/pull/6) on windows.
+
+Interestingly [SuperLU_DIST_jll](https://github.com/boriskaus/test_SuperLU_DIST_jll/actions/runs/7422000918) works fine on windows & with MPI.
+
