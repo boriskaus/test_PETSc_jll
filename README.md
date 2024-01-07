@@ -96,7 +96,57 @@ So the mystery remains: why is it failing in windows? It certainly worked fine p
 Note that the windows compilation features a problem in [precompilation](https://github.com/JuliaGeodynamics/LaMEM.jl/actions/runs/7391374810/job/20108073568?pr=21#step:6:416).
 
 
-##### Previous versions of PETSc_jll
+##### Previous version of PETSc_jll
 So what if we test previous versions of PETSc?
+A test with PETSc_jll 3.18.6 (and 3.18.7 on julia 1.10, which is in fact a much more recent build) shows that it works fine, apart from julia 1.10 and windows (see [here](https://github.com/boriskaus/test_PETSc_jll/actions/runs/7433265800/job/20226063003)). That confirms what we already saw with LaMEM.jl.
 
+So in other words: PETSc 3.18.6 works on windows for julia 1.9; yet PETSc 3.20.0 does not work on windows & 1.9. Is that because of a version difference in PETSc or because something changed in the BinaryBuilder or julia toolchain that went unnoticed?
 
+##### Rebuilding PETSc_jll 3.18.6
+To check this, lets rebuild 3.18.6 using the exact same options as we used last time (May 20 2023). The build file is called `build_tarballs_petsc_3_18_6.jl` and was slighty modified as we need to apply the previous patches (which were all renamed), to restrict the builds to real/Int64 (to speed up compilation) and to add ex19 (default PETSc test)
+
+The first interesting observation is that it no longer compiles, but instead stops with:
+```bash
+[22:52:31] *******************************************************************************
+[22:52:31]          UNABLE to CONFIGURE with GIVEN OPTIONS    (see configure.log for details):
+[22:52:31] -------------------------------------------------------------------------------
+[22:52:31] You set a value for --with-blaslapack-lib=<lib>, but [''] cannot be used
+[22:52:31] *******************************************************************************
+[22:52:31] 
+[22:52:31] Child Process exited, exit code 1
+┌ Warning: Build failed, the following log files were generated:
+│   - ${WORKSPACE}/srcdir/petsc-3.18.6/RDict.log
+│   - ${WORKSPACE}/srcdir/petsc-3.18.6/configure.log
+│   - ${WORKSPACE}/srcdir/petsc-3.18.6/aarch64-apple-darwin20_double_real_Int64/lib/petsc/conf/configure.log
+```
+
+That is weird. We are using the same version of BB (0.5.6), so its not that.
+
+Luckily the logfiles of the original build are saved [here](https://github.com/JuliaBinaryWrappers/PETSc_jll.jl/releases/download/PETSc-v3.18.6%2B1/PETSc-logs.v3.18.6.aarch64-apple-darwin-libgfortran5-mpi+mpich.tar.gz).
+
+This shows that the original compilation used these compilers:
+```
+clang version 13.0.1 (/home/mose/.julia/dev/BinaryBuilderBase/deps/downloads/clones/llvm-project.git-1df819a03ecf6890e3787b27bfd4f160aeeeeacd50a98d003be8b0893f11a9be 75e33f71c2dae584b13a7d1186ae0a038ba98838)
+Target: arm64-apple-darwin20
+Thread model: posix
+```
+The current version is:
+```
+sandbox:${WORKSPACE}/srcdir/petsc-3.18.6 # cc --version
+clang version 16.0.6 (/home/gbaraldi/.julia/dev/BinaryBuilderBase/deps/downloads/clones/llvm-project.git-1df819a03ecf6890e3787b27bfd4f160aeeeeacd50a98d003be8b0893f11a9be 7cbf1a2591520c2491aa35339f227775f4d3adf6)
+Target: arm64-apple-darwin20
+Thread model: posix
+InstalledDir: /opt/x86_64-linux-musl/bin
+```
+
+We can fix the clang to 13 with:
+```
+build_tarballs(ARGS, name, version, sources, script, platforms, products, dependencies;
+               augment_platform_block, 
+               julia_compat="1.6", 
+               preferred_gcc_version = v"9", 
+               preferred_llvm_version=v"13")
+```
+
+Another change is that `MPICH` now has version 4.1.2, which used to be 4.1.1. I have not fixed that in the initial build
+With 
