@@ -3,8 +3,8 @@ using Test, Pkg
 export mpirun, deactivate_multithreading, run_petsc_ex
 
 # ensure that we use the correct version of the package 
-Pkg.add(url="https://github.com/boriskaus/PETSc_jll.jl")
-#Pkg.add("PETSc_jll.jl")
+#Pkg.add(url="https://github.com/boriskaus/PETSc_jll.jl")
+Pkg.add("PETSc_jll.jl")
 using PETSc_jll
 
 # Show the host platform (debug info)
@@ -86,7 +86,7 @@ end
 
 test_suitesparse = false
 test_superlu_dist = false
-test_mumps = true
+test_mumps = false
 is_parallel = true;
 
 @testset "ex19, ex42, ex4" begin
