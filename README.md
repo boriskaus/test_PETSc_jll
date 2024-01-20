@@ -168,4 +168,7 @@ Analyzing the run logs a bit more in  detail seems to reveal that windows uses l
 
 Some hints as what this might be can be taken from the [HDF5_jll](https://github.com/JuliaPackaging/Yggdrasil/blob/master/H/HDF5/build_tarballs.jl) build.
 
+That did not [work](https://github.com/boriskaus/test_PETSc_jll/actions/runs/7594145663/job/20685355403) so the next attempt is to use gcc 11 instead, which turns out not to even compile ("Fortran error! mpi_init() could not be located!"). 
+
+As that did not work, the next attempt removed gcc versions altogether and copies symlink
 
