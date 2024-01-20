@@ -164,5 +164,8 @@ Interestingly [SuperLU_DIST_jll](https://github.com/boriskaus/test_SuperLU_DIST_
 Let's focus first on windows & 3.18.6 where we have a compilation from May 2023 which works fine and a new compilation with the same parameters which fails. Restricting MPICH to 4.1.1 did not change the situation (somewhat logically as we don't use that on windows).
 
 ##### Without clang constraint on windows
-Analyzing the run logs a bit more in  detail seems to reveal that windows uses llvm14, whereas we compiled with llvm13. So the next attempt is to do a windows-build only, and remove the clang constraint from this platform. Turns out that this compiles fine.  
+Analyzing the run logs a bit more in  detail seems to reveal that windows uses llvm14, whereas we compiled with llvm13. So the next attempt is to do a windows-build only, and remove the clang constraint from this platform. Turns out that this compiles fine, but running gives the same [runtime error](https://github.com/boriskaus/test_PETSc_jll/actions/runs/7594048475/job/20685150138#step:7:221).
+
+Some hints as what this might be can be taken from the [HDF5_jll](https://github.com/JuliaPackaging/Yggdrasil/blob/master/H/HDF5/build_tarballs.jl) build.
+
 
