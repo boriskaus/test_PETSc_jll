@@ -1,4 +1,4 @@
-using Test, Pkg
+using Test, Pkg, Base.Sys
 
 export mpirun, deactivate_multithreading, run_petsc_ex
 
@@ -95,9 +95,13 @@ test_suitesparse = false
 test_superlu_dist = false
 test_mumps = false
 
-is_parallel = false;        # activate parallel tests
-mpi_single_core = false;    # performs a single-core run without calling MPI
-
+if iswindows()
+    is_parallel = false;        # activate parallel tests
+    mpi_single_core = false;    # performs a single-core run without calling MPI
+else
+    is_parallel = true;         # activate parallel tests
+    mpi_single_core = true;     # performs a single-core run without calling MPI
+end
 @testset "ex19, ex42, ex4" begin
 
     if any(names(PETSc_jll) .== :ex19)
