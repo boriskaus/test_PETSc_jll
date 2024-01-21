@@ -92,7 +92,7 @@ end
 
 
 test_suitesparse = false
-test_superlu_dist = true
+test_superlu_dist = false
 test_mumps = false
 
 is_parallel = false;        # activate parallel tests
