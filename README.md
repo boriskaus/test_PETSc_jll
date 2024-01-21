@@ -189,4 +189,10 @@ MPI:
 
 What if that particular build of `MicrosoftMPI` was for some reason compatible with running it with `MicrosoftMPI 10.1.4` (which is now used to run packages), but something broke in later versions of  `MicrosoftMPI`, so we can compile it but receive a runtime error when running?
 
-It doesn't seem possible to specify a detailed sub-build as version (so we cannot use 10.1.3+3, but only 10.1.3, which will use a different default version). The first attempt, therefore, was 
+It doesn't seem possible to specify a detailed sub-build as version (so we cannot use 10.1.3+3, but only 10.1.3, which will use a different default version). The first attempt, therefore, was using 10.1.2. Turns out that whereas it builds with 10.1.2, it runs with 10.1.4 which gives the usual error.
+
+The following attempt used this:
+```julia
+dependencies = [
+    Dependency("MicrosoftMPI_jll"; platforms=filter(Sys.iswindows, platforms), compat="10.1.2 - 10.1.2"),
+```
