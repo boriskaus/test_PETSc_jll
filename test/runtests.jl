@@ -24,8 +24,12 @@ else
     println("Be careful! No MPI library detected; parallel runs won't work")
     nothing
 end
-mpirun = setenv(mpiexec, PETSc_jll.JLLWrappers.JLLWrappers.LIBPATH_env=>PETSc_jll.LIBPATH[]);
 
+if !isnothing(mpiexec)
+    mpirun = setenv(mpiexec, PETSc_jll.JLLWrappers.JLLWrappers.LIBPATH_env=>PETSc_jll.LIBPATH[]);
+else
+    mpirun = nothing;
+end
 
 function deactivate_multithreading(cmd::Cmd)
     # multithreading of the BLAS libraries that is installed by default with the julia BLAS
@@ -88,6 +92,7 @@ test_suitesparse = false
 test_superlu_dist = false
 test_mumps = false
 is_parallel = true;
+mpi_single_core = true;     # performs a single-core run without calling MPI
 
 @testset "ex19, ex42, ex4" begin
 
@@ -95,7 +100,7 @@ is_parallel = true;
         # Note: ex19 is thew default test that PETSc performs @ the end of the installation process
         @testset "ex19 1: iterative" begin
             args = `-da_refine 3 -pc_type mg -ksp_type fgmres`;
-            r = run_petsc_ex(args, 1, "ex19")
+            r = run_petsc_ex(args, 1, "ex19", mpi_single_core=mpi_single_core)
             @test r.exitcode == 0
         end
         
@@ -133,7 +138,7 @@ is_parallel = true;
         @testset "ex19 1: suitesparse" begin
             if test_suitesparse
                 args = `-da_refine 3 -snes_monitor_short -pc_type lu -pc_factor_mat_solver_type umfpack`;
-                r = run_petsc_ex(args, 1, "ex19")
+                r = run_petsc_ex(args, 1, "ex19", mpi_single_core=mpi_single_core)
                 @test r.exitcode == 0
             end
         end
@@ -141,7 +146,7 @@ is_parallel = true;
 
     @testset "ex42 1: serial" begin
         args = `-stokes_ksp_monitor_short -stokes_ksp_converged_reason -stokes_pc_type lu`;
-        r = run_petsc_ex(args, 1, "ex42")
+        r = run_petsc_ex(args, 1, "ex42", mpi_single_core=mpi_single_core)
         @test r.exitcode == 0
     end
     
@@ -187,7 +192,7 @@ is_parallel = true;
 
     @testset "ex42 1: fieldsplit" begin
         args = `-stokes_ksp_converged_reason -stokes_pc_type fieldsplit -resolve`
-        r = run_petsc_ex(args, 1, "ex42")
+        r = run_petsc_ex(args, 1, "ex42", mpi_single_core=mpi_single_core)
         @test r.exitcode == 0
     end
 
@@ -218,7 +223,7 @@ is_parallel = true;
     @testset "ex4  1: direct_umfpack suitesparse" begin
         if test_suitesparse
             args = `-dim 2 -coefficients layers -nondimensional 0 -stag_grid_x 12 -stag_grid_y 7 -pc_type lu -pc_factor_mat_solver_type umfpack -ksp_converged_reason`;
-            r = run_petsc_ex(args, 1, "ex4")
+            r = run_petsc_ex(args, 1, "ex4", mpi_single_core=mpi_single_core)
 
             @test r.exitcode == 0
         end
@@ -246,13 +251,13 @@ is_parallel = true;
     
     @testset "ex4  1: isovisc_nondim_abf_mg" begin
         args = `-dim 2 -coefficients layers -nondimensional 1 -pc_type fieldsplit -pc_fieldsplit_type schur -ksp_converged_reason -fieldsplit_element_ksp_type preonly  -pc_fieldsplit_detect_saddle_point false -fieldsplit_face_pc_type mg -fieldsplit_face_pc_mg_levels 3 -stag_grid_x 24 -stag_grid_y 24 -fieldsplit_face_pc_mg_galerkin -fieldsplit_face_ksp_converged_reason -ksp_type fgmres -fieldsplit_element_pc_type none -fieldsplit_face_mg_levels_ksp_max_it 6 -pc_fieldsplit_schur_fact_type upper -isoviscous `;
-        r = run_petsc_ex(args, 1, "ex4")
+        r = run_petsc_ex(args, 1, "ex4", mpi_single_core=mpi_single_core)
         @test r.exitcode == 0
     end
 
     @testset "ex4  1: isovisc_nondim_abf_mg_2" begin
         args = `-dim 2 -coefficients layers -nondimensional -isoviscous -eta1 1.0 -stag_grid_x 32 -stag_grid_y 32 -ksp_type fgmres -pc_type fieldsplit -pc_fieldsplit_type schur -pc_fieldsplit_schur_fact_type upper -build_auxiliary_operator -fieldsplit_element_ksp_type preonly -fieldsplit_element_pc_type jacobi -fieldsplit_face_pc_type mg -fieldsplit_face_pc_mg_levels 3 -fieldsplit_face_pc_mg_galerkin -fieldsplit_face_mg_levels_pc_type jacobi -fieldsplit_face_mg_levels_ksp_type chebyshev -ksp_converged_reason `;
-        r = run_petsc_ex(args, 1, "ex4")
+        r = run_petsc_ex(args, 1, "ex4", mpi_single_core=mpi_single_core)
         
         @test r.exitcode == 0
     end
@@ -260,7 +265,7 @@ is_parallel = true;
     @testset "ex4  1: nondim_abf_lu suitesparse" begin
         if test_suitesparse
             args = `-dim 2 -coefficients layers -pc_type fieldsplit -pc_fieldsplit_type schur -ksp_converged_reason -fieldsplit_element_ksp_type preonly  -pc_fieldsplit_detect_saddle_point false -ksp_type fgmres -fieldsplit_element_pc_type none -pc_fieldsplit_schur_fact_type upper -nondimensional -eta1 1e-2 -eta2 1.0 -isoviscous 0 -ksp_monitor -fieldsplit_element_pc_type jacobi -build_auxiliary_operator -fieldsplit_face_pc_type lu -fieldsplit_face_pc_factor_mat_solver_type umfpack -stag_grid_x 32 -stag_grid_y 32        `;
-            r = run_petsc_ex(args, 1, "ex4")
+            r = run_petsc_ex(args, 1, "ex4", mpi_single_core=mpi_single_core)
             @test r.exitcode == 0
         end
     end
@@ -275,25 +280,25 @@ is_parallel = true;
 
     @testset "ex4  1: 3d_nondim_isovisc_abf_mg" begin
         args = `-dim 3 -coefficients layers -isoviscous -nondimensional -build_auxiliary_operator -pc_type fieldsplit -pc_fieldsplit_type schur -ksp_converged_reason -fieldsplit_element_ksp_type preonly  -pc_fieldsplit_detect_saddle_point false -fieldsplit_face_pc_type mg -fieldsplit_face_pc_mg_levels 3 -s 16 -fieldsplit_face_pc_mg_galerkin -fieldsplit_face_ksp_converged_reason -ksp_type fgmres -fieldsplit_element_pc_type none -fieldsplit_face_mg_levels_ksp_max_it 6 -pc_fieldsplit_schur_fact_type upper`;
-        r = run_petsc_ex(args, 1, "ex4")
+        r = run_petsc_ex(args, 1, "ex4", mpi_single_core=mpi_single_core)
         @test r.exitcode == 0
     end
 
     @testset "ex4  1: monolithic 2D" begin
         args = `-dim 2 -s 16 -custom_pc_mat -pc_type mg -pc_mg_levels 3 -pc_mg_galerkin -mg_levels_ksp_type gmres -mg_levels_ksp_norm_type unpreconditioned -mg_levels_ksp_max_it 10 -mg_levels_pc_type jacobi -ksp_converged_reason     `;
-        r = run_petsc_ex(args, 1, "ex4")
+        r = run_petsc_ex(args, 1, "ex4", mpi_single_core=mpi_single_core)
         @test r.exitcode == 0
     end
 
     @testset "ex4  1: monolithic 3D" begin
         args = `-dim 3 -s 16 -custom_pc_mat -pc_type mg -pc_mg_levels 3 -pc_mg_galerkin -mg_levels_ksp_type gmres -mg_levels_ksp_norm_type unpreconditioned -mg_levels_ksp_max_it 10 -mg_levels_pc_type jacobi -ksp_converged_reason     `;
-        r = run_petsc_ex(args, 1, "ex4")
+        r = run_petsc_ex(args, 1, "ex4", mpi_single_core=mpi_single_core)
         @test r.exitcode == 0
     end
 
     @testset "ex4  1: 3d_nondim_isovisc_sinker_abf_mg" begin
         args = `-dim 3 -coefficients sinker -isoviscous -nondimensional -pc_type fieldsplit -pc_fieldsplit_type schur -ksp_converged_reason -fieldsplit_element_ksp_type preonly  -pc_fieldsplit_detect_saddle_point false -fieldsplit_face_pc_type mg -fieldsplit_face_pc_mg_levels 3 -s 16 -fieldsplit_face_pc_mg_galerkin -fieldsplit_face_ksp_converged_reason -ksp_type fgmres -fieldsplit_element_pc_type none -fieldsplit_face_mg_levels_ksp_max_it 6 -pc_fieldsplit_schur_fact_type upper        `;
-        r = run_petsc_ex(args, 1, "ex4")
+        r = run_petsc_ex(args, 1, "ex4", mpi_single_core=mpi_single_core)
         @test r.exitcode == 0
     end
 
@@ -301,7 +306,7 @@ is_parallel = true;
     @testset "ex4  1: 3d_nondim_mono_mg_lamemstyle suitesparse" begin
         if test_suitesparse
             args = `-dim 3 -coefficients layers -nondimensional -s 16 -custom_pc_mat -pc_type mg -pc_mg_galerkin -pc_mg_levels 2 -mg_levels_ksp_type richardson -mg_levels_pc_type jacobi -mg_levels_ksp_richardson_scale 0.5 -mg_levels_ksp_max_it 20 -mg_coarse_pc_type lu -mg_coarse_pc_factor_mat_solver_type umfpack -ksp_converged_reason        `;
-            r = run_petsc_ex(args, 1, "ex4")
+            r = run_petsc_ex(args, 1, "ex4", mpi_single_core=mpi_single_core)
             @test r.exitcode == 0
         end
     end
@@ -309,7 +314,7 @@ is_parallel = true;
     @testset "ex4  1: 3d_nondim_mono_mg_lamemstyle mumps" begin
         if test_mumps
             args = ` -dim 3 -coefficients layers -nondimensional -s 16 -custom_pc_mat -pc_type mg -pc_mg_galerkin -pc_mg_levels 2 -mg_levels_ksp_type richardson -mg_levels_pc_type jacobi -mg_levels_ksp_richardson_scale 0.5 -mg_levels_ksp_max_it 20 -mg_coarse_pc_type lu -mg_coarse_pc_factor_mat_solver_type mumps -ksp_converged_reason        `;
-            r = run_petsc_ex(args, 1, "ex4")
+            r = run_petsc_ex(args, 1, "ex4", mpi_single_core=mpi_single_core)
             @test r.exitcode == 0
         end
     end

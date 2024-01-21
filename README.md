@@ -207,3 +207,12 @@ ERROR: LoadError: InitError: could not load library "C:\Users\runneradmin\.julia
 Access is denied. 
 ```
 
+Another attempt was made to also fix further packages to the ones we had in ~May 2023
+```julia
+    Dependency("OpenBLAS32_jll", compat="0.3.21 - 0.3.21"),
+    Dependency("CompilerSupportLibraries_jll", compat="1.0.4 - 1.0.4"),     # march 7, 2023
+```
+
+
+##### No MPI on windows 
+ok, as nothing works lets try without MPI altogether
