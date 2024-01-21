@@ -93,7 +93,7 @@ end
 
 test_suitesparse = false
 test_superlu_dist = false
-test_mumps = false
+test_mumps = true
 
 is_parallel = false;        # activate parallel tests
 mpi_single_core = false;    # performs a single-core run without calling MPI
