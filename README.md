@@ -196,3 +196,14 @@ The following attempt used this:
 dependencies = [
     Dependency("MicrosoftMPI_jll"; platforms=filter(Sys.iswindows, platforms), compat="10.1.2 - 10.1.2"),
 ```
+
+This did load the correct library upon running, but resulted in the [following error](https://github.com/boriskaus/test_PETSc_jll/actions/runs/7601233995/job/20700407517#step:7:163):
+
+```
+[9237b28f] + MicrosoftMPI_jll v10.1.2+3
+
+  4 dependencies errored. To see a full report either run `import Pkg; Pkg.precompile()` or load the packages
+ERROR: LoadError: InitError: could not load library "C:\Users\runneradmin\.julia\artifacts\c40a6c43d243a924b2a0798b4752b490d61ebf4c\bin\msmpi.dll"
+Access is denied. 
+```
+
