@@ -13,8 +13,7 @@ using PETSc_jll
 
 #setup MPI
 const mpiexec = if isdefined(PETSc_jll,:MPICH_jll)
-    #PETSc_jll.MPICH_jll.mpiexec()
-    nothing
+    PETSc_jll.MPICH_jll.mpiexec()
 elseif isdefined(PETSc_jll,:MicrosoftMPI_jll) 
     PETSc_jll.MicrosoftMPI_jll.mpiexec()
 elseif isdefined(PETSc_jll,:OpenMPI_jll) 
