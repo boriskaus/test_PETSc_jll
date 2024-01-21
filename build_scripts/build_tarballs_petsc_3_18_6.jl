@@ -331,4 +331,5 @@ build_tarballs(ARGS, name, version, sources, script, platforms, products, depend
                augment_platform_block, 
                julia_compat="1.6", 
                preferred_gcc_version = v"9",
-               preferred_llvm_version = v"13")
+               preferred_llvm_version = v"13",
+               clang_use_lld=false)
