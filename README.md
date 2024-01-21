@@ -213,6 +213,5 @@ Another attempt was made to also fix further packages to the ones we had in ~May
     Dependency("CompilerSupportLibraries_jll", compat="1.0.4 - 1.0.4"),     # march 7, 2023
 ```
 
-
 ##### No MPI on windows 
-ok, as nothing works lets try without MPI altogether
+ok, as nothing works lets try without MPI altogether. This finally gives some success (after adapting the tests), as can be seen [here](https://github.com/boriskaus/test_PETSc_jll/actions/runs/7602378455/job/20702870051).
