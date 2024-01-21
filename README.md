@@ -215,3 +215,12 @@ Another attempt was made to also fix further packages to the ones we had in ~May
 
 ##### No MPI on windows 
 ok, as nothing works lets try without MPI altogether. This finally gives some success (after adapting the tests), as can be seen [here](https://github.com/boriskaus/test_PETSc_jll/actions/runs/7602378455/job/20702870051).
+
+This works, but suitesparse does not work at all (see [here](https://github.com/boriskaus/test_PETSc_jll/actions/runs/7602965554/job/20704131214) ).
+
+Which version of SuiteSparse is PETSc using anyways? To determine this, we looked at the logfiles and it turns out to be 5.13.0
+
+In a next step, I made an attempt to activate MUMPS 5.6.2 as that is a version that is compiled for windows as well. Unfortunately it results in the usual runtime crash.
+
+
+
