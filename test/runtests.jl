@@ -4,7 +4,7 @@ export mpirun, deactivate_multithreading, run_petsc_ex
 
 # ensure that we use the correct version of the package 
 Pkg.add(url="https://github.com/boriskaus/PETSc_jll.jl")
-#Pkg.add("PETSc_jll.jl")
+#Pkg.add("PETSc_jll")
 using PETSc_jll
 
 # Show the host platform (debug info)
@@ -13,7 +13,8 @@ using PETSc_jll
 
 #setup MPI
 const mpiexec = if isdefined(PETSc_jll,:MPICH_jll)
-    PETSc_jll.MPICH_jll.mpiexec()
+    #PETSc_jll.MPICH_jll.mpiexec()
+    nothing
 elseif isdefined(PETSc_jll,:MicrosoftMPI_jll) 
     PETSc_jll.MicrosoftMPI_jll.mpiexec()
 elseif isdefined(PETSc_jll,:OpenMPI_jll) 
@@ -24,6 +25,8 @@ else
     println("Be careful! No MPI library detected; parallel runs won't work")
     nothing
 end
+
+@show mpiexec
 
 if !isnothing(mpiexec)
     mpirun = setenv(mpiexec, PETSc_jll.JLLWrappers.JLLWrappers.LIBPATH_env=>PETSc_jll.LIBPATH[]);
@@ -91,8 +94,9 @@ end
 test_suitesparse = false
 test_superlu_dist = false
 test_mumps = false
-is_parallel = true;
-mpi_single_core = true;     # performs a single-core run without calling MPI
+
+is_parallel = false;        # activate parallel tests
+mpi_single_core = false;    # performs a single-core run without calling MPI
 
 @testset "ex19, ex42, ex4" begin
 
