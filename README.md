@@ -170,5 +170,23 @@ Some hints as what this might be can be taken from the [HDF5_jll](https://github
 
 That did not [work](https://github.com/boriskaus/test_PETSc_jll/actions/runs/7594145663/job/20685355403) so the next attempt is to use gcc 11 instead, which turns out not to even compile ("Fortran error! mpi_init() could not be located!"). 
 
-As that did not work, the next attempt removed gcc versions altogether and copies symlink
+As that did not work, the next attempt removed gcc versions altogether and copies symlink. this did not function either.
 
+
+##### MicrosoftMPI version as the culprit?
+The PETSc version of May 2023 did work but if I recompile the same script now, we receive a runtime error. It's not so clear what causes this, but our colleagues @ HDF5_jll seem to find that this is related to [enabling MPI]( https://github.com/eschnett/Yggdrasil/pull/6).
+
+On windows we use MicrosoftMPI, which had a few updates during [the last year](https://github.com/JuliaPackaging/Yggdrasil/commits/e083b0133c68ca3596046eea8dfee55d611b8488/M/MicrosoftMPI/build_tarballs.jl). The original PETSc 3.18.6 we build, must have used [MicrosoftMPI_jll version 10.1.3+3](https://github.com/JuliaBinaryWrappers/MicrosoftMPI_jll.jl/releases) from April 7, 2023. Looking through the logs of the installation on [windows](https://github.com/JuliaBinaryWrappers/PETSc_jll.jl/releases) shows that the version of MicrosoftMPI_jll that we employed is not actually stored. What is shown is this during PETSc installation:
+```
+MPI:
+  Version:    2
+  Includes:   -I/workspace/destdir/include
+  Libraries:  /workspace/destdir/bin/msmpi.dll
+  mpiexec: Not_appropriate_for_batch_systems_You_must_use_your_batch_system_to_submit_MPI_jobs_speak_with_your_local_sys_admin
+  MSMPI_VERSION: 0x100
+  ``` 
+
+
+What if that particular build of `MicrosoftMPI` was for some reason compatible with running it with `MicrosoftMPI 10.1.4` (which is now used to run packages), but something broke in later versions of  `MicrosoftMPI`, so we can compile it but receive a runtime error when running?
+
+It doesn't seem possible to specify a detailed sub-build as version (so we cannot use 10.1.3+3, but only 10.1.3, which will use a different default version). The first attempt, therefore, was 
