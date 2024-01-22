@@ -236,7 +236,9 @@ On the request of [Viral Shah](https://github.com/JuliaPackaging/Yggdrasil/pull/
 A first compilation was done for windows only which runs [fine](https://github.com/boriskaus/test_PETSc_jll/actions/runs/7614714564). 
 To be sure, we added a build for linux/mac/windows in the mix. 
 
-In a first compile I accidentally still used openblas. Next iteration worked better.
+In a first compile I accidentally still used openblas. Next iteration worked better, but results in [segfaults](https://github.com/boriskaus/test_PETSc_jll/actions/runs/7616965141).
+
+This was therefore revoked.
 
 
 
