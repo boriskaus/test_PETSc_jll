@@ -229,7 +229,8 @@ Next on the list was removing the SOSUFFIX, which also doesnt change things.
 ##### PETSc 3.18.7 without MPI/without SuiteSparse 
 PETSc 3.18.7 doesn't actually work with SuiteSparse (as we need 5.13 which does note exist in BB). To ensure that 3.18.7 works again we deactivate MPI on windows and create a new build.
 
-A retrigger with OpenBLAS rather than with libblastrampoline was necessary.
+A retrigger with OpenBLAS rather than with libblastrampoline was necessary. It seems that I messed something up in the process as it no longer works on windows.
+
 
 
 
