@@ -231,6 +231,10 @@ PETSc 3.18.7 doesn't actually work with SuiteSparse (as we need 5.13 which does 
 
 A retrigger with OpenBLAS rather than with libblastrampoline was necessary. It seems that I messed something up in the process as it no longer works on windows.
 
+##### PETSc 3.18.7 without MPI/without SuiteSparse but with LBT
+On the request of [Viral Shah](https://github.com/JuliaPackaging/Yggdrasil/pull/7989#issuecomment-1904367926) another attempt was made to compile 3.18.7 with LBT (I believe I did this already but perhaps other things were messed up in the process).
+A first compilation for done for windows only.
+
 
 
 
