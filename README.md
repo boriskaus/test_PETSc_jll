@@ -233,7 +233,8 @@ A retrigger with OpenBLAS rather than with libblastrampoline was necessary. It s
 
 ##### PETSc 3.18.7 without MPI/without SuiteSparse but with LBT
 On the request of [Viral Shah](https://github.com/JuliaPackaging/Yggdrasil/pull/7989#issuecomment-1904367926) another attempt was made to compile 3.18.7 with LBT (I believe I did this already but perhaps other things were messed up in the process).
-A first compilation for done for windows only.
+A first compilation was done for windows only which runs [fine](https://github.com/boriskaus/test_PETSc_jll/actions/runs/7614714564). 
+To be sure, we added a buikd for linux/mac/windows in the mix. 
 
 
 
