@@ -6,14 +6,14 @@ include(joinpath(YGGDRASIL_DIR, "platforms", "mpi.jl"))
 name = "PETSc"
 version = v"3.18.6"
 petsc_version = v"3.18.6"
-MUMPS_COMPAT_VERSION = "5.5.1"
-SUITESPARSE_COMPAT_VERSION = "5.10.1"
+MUMPS_COMPAT_VERSION = "5.6.2"
+SUITESPARSE_COMPAT_VERSION = "5.10.1, 7.2.1"        # PETSc 3.18.6 is compatible with SuiteSparse 5.13.0 and with no other version
 SUPERLUDIST_COMPAT_VERSION = "8.1.2"   
 MPItrampoline_compat_version="5.2.1"    
 
 SCALAPACK32_COMPAT_VERSION="2.2.1"
 METIS_COMPAT_VERSION="5.1.2"
-SCOTCH_COMPAT_VERSION="6.1.3"
+SCOTCH_COMPAT_VERSION="7.0.4"
 PARMETIS_COMPAT_VERSION="4.0.6"
 
 # Collection of sources required to build PETSc. Avoid using the git repository, it will
@@ -36,27 +36,6 @@ else
     BLAS_LAPACK_LIB="${libdir}/libopenblas.${dlext}"
 fi
 
-if [[ "${target}" == *-mingw* ]]; then
-    #atomic_patch -p1 $WORKSPACE/srcdir/patches/fix-header-cases.patch
-    MPI_LIBS="${libdir}/msmpi.${dlext}"
-
-else
-    if grep -q MPICH_NAME $prefix/include/mpi.h; then
-        MPI_FFLAGS=
-        MPI_LIBS="[${libdir}/libmpifort.${dlext},${libdir}/libmpi.${dlext}]"
-    elif grep -q MPItrampoline $prefix/include/mpi.h; then
-        MPI_FFLAGS="-fcray-pointer"
-        MPI_LIBS="[${libdir}/libmpitrampoline.${dlext}]"
-    elif grep -q OMPI_MAJOR_VERSION $prefix/include/mpi.h; then
-        MPI_FFLAGS=
-        MPI_LIBS="[${libdir}/libmpi_usempif08.${dlext},${libdir}/libmpi_usempi_ignore_tkr.${dlext},${libdir}/libmpi_mpifh.${dlext},${libdir}/libmpi.${dlext}]"
-    else
-        MPI_FFLAGS=
-        MPI_LIBS=
-    fi
-
-fi
-
 
 atomic_patch -p1 $WORKSPACE/srcdir/patches/mingw-version_3_18_6.patch
 atomic_patch -p1 $WORKSPACE/srcdir/patches/mpi-constants_3_18_6.patch         
@@ -66,6 +45,61 @@ atomic_patch -p1 $WORKSPACE/srcdir/patches/sosuffix_3_18_6.patch
 mkdir $libdir/petsc
 build_petsc()
 {
+    if [[ "${target}" == *-mingw* ]]; then
+        # On windows, it compiles fine but we obtain a following runtime error:
+        # 
+        # Mingw-w64 runtime failure:
+        # 32 bit pseudo relocation at 00000000093934AA out of range, targeting 00007FF8B7756530, yielding the value 00007FF8AE3C3082.
+        #
+        # (see https://github.com/boriskaus/test_PETSc_jll/actions/runs/7444842322/job/20251986258#step:7:236)
+        #
+        # Interestingly, this error does NOT occur if we use the originally compiled PETSc_jll version 3.18.6 from May 2023.
+        # (e.g., https://github.com/boriskaus/test_PETSc_jll/actions/runs/7444942534/job/20252261704#step:6:49). 
+        #
+        # If we recompile it using the same versions of all packages (while fixing llvm to version 13, as was used in May 2023 for compilation), we have the runtime error above
+        #
+        # The same issue occured in HDF5_jll (https://github.com/eschnett/Yggdrasil/pull/6)
+        #
+        # Interestingly, SuperLU_Dist_jll does not have this issue and runs fine in serial & parallel on windows 
+        # (see e.g. https://github.com/boriskaus/test_SuperLU_DIST_jll/actions/runs/7595261750/job/20687625690#step:7:181)
+        #
+        # Despite a significant time-effort from my side, I have been unable to fix the issue, so I deactivate MPI on windows as a workaround.
+        #MPI_LIBS=--with-mpi-lib="${libdir}/msmpi.${dlext}"
+    
+        MPI_FFLAGS=""
+        MPI_LIBS=""
+        MPI_INC=""
+        #MPI_INC=--with-mpi-include=${includedir}
+        USE_MPI=0
+    else
+        if grep -q MPICH_NAME $prefix/include/mpi.h; then
+            #MPI_FFLAGS=
+            #MPI_LIBS="[${libdir}/libmpifort.${dlext},${libdir}/libmpi.${dlext}]"
+            USE_MPI=1
+            MPI_FFLAGS=""
+            #MPI_LIBS=""
+            #MPI_INC=""
+            MPI_LIBS=--with-mpi-lib="[${libdir}/libmpifort.${dlext},${libdir}/libmpi.${dlext}]"
+            MPI_INC=--with-mpi-include=${includedir}
+        elif grep -q MPItrampoline $prefix/include/mpi.h; then
+            MPI_FFLAGS="-fcray-pointer"
+            MPI_LIBS=--with-mpi-lib="[${libdir}/libmpitrampoline.${dlext}]"
+            MPI_INC=--with-mpi-include=${includedir}
+            USE_MPI=1
+        elif grep -q OMPI_MAJOR_VERSION $prefix/include/mpi.h; then
+            MPI_FFLAGS=""
+            MPI_LIBS=--with-mpi-lib="[${libdir}/libmpi_usempif08.${dlext},${libdir}/libmpi_usempi_ignore_tkr.${dlext},${libdir}/libmpi_mpifh.${dlext},${libdir}/libmpi.${dlext}]"
+            MPI_INC=--with-mpi-include=${includedir}
+            USE_MPI=1
+        else
+            MPI_FFLAGS=""
+            MPI_LIBS=""
+            MPI_INC=""
+            USE_MPI=0
+        fi
+    
+    fi
+
     # Compile a debug version?
     DEBUG_FLAG=0
     if [[ "${4}" == "deb" ]]; then
@@ -91,6 +125,13 @@ build_petsc()
         SUPERLU_DIST_LIB="--with-superlu_dist-lib=${libdir}/libsuperlu_dist_Int32.${dlext}"
         
         SUPERLU_DIST_INCLUDE="--with-superlu_dist-include=${includedir}"
+    fi
+    
+    # On windows the MPI-related error prevents us from running it, even when the SuperLU_Dist_jll in itself works fine
+    if [[ "${target}" == *-mingw* ]]; then
+        USE_SUPERLU_DIST=0
+        SUPERLU_DIST_LIB=""
+        SUPERLU_DIST_INCLUDE=""
     fi
     
     USE_SUITESPARSE=0
@@ -143,9 +184,11 @@ build_petsc()
         _FOPTFLAGS='-O3' 
     fi
 
+
     echo "USE_SUPERLU_DIST="$USE_SUPERLU_DIST
     echo "USE_SUITESPARSE="$USE_SUITESPARSE
     echo "USE_MUMPS="$USE_MUMPS
+    echo "USE_MPI="$USE_MPI
     echo "1="${1}
     echo "2="${2}
     echo "3="${3}
@@ -175,9 +218,10 @@ build_petsc()
         --with-64-bit-indices=${USE_INT64}  \
         --with-debugging=${DEBUG_FLAG}  \
         --with-batch \
-        --with-mpi-lib="${MPI_LIBS}" \
+        --with-mpi=${USE_MPI} \
+        ${MPI_LIBS} \
+        ${MPI_INC} \
         --known-mpi-int64_t=0 \
-        --with-mpi-include="${includedir}" \
         --with-sowing=0 \
         --with-precision=${1}  \
         --with-scalar-type=${2} \
@@ -189,7 +233,6 @@ build_petsc()
         --with-mumps=${USE_MUMPS} \
         ${MUMPS_LIB} \
         ${MUMPS_INCLUDE} \
-        --with-suitesparse=${USE_SUITESPARSE} \
         --SOSUFFIX=${PETSC_CONFIG} \
         --with-clean=1
 
@@ -281,6 +324,7 @@ platforms = expand_gfortran_versions(supported_platforms(exclude=[Platform("i686
 platforms, platform_dependencies = MPI.augment_platforms(platforms; MPItrampoline_compat=MPItrampoline_compat_version, MPICH_compat="4.1.1")
 
 # Avoid platforms where the MPI implementation isn't supported
+
 # OpenMPI
 platforms = filter(p -> !(p["mpi"] == "openmpi" && arch(p) == "armv6l" && libc(p) == "glibc"), platforms)
 
@@ -311,8 +355,8 @@ dependencies = [
     Dependency("OpenBLAS32_jll"),
     Dependency("CompilerSupportLibraries_jll"),
     Dependency("SuperLU_DIST_jll"; compat=SUPERLUDIST_COMPAT_VERSION),
-    Dependency("SuiteSparse_jll"; compat=SUITESPARSE_COMPAT_VERSION),
-    Dependency("MUMPS_jll"; compat=MUMPS_COMPAT_VERSION),
+    #Dependency("SuiteSparse_jll"; compat=SUITESPARSE_COMPAT_VERSION),
+    Dependency("MUMPS_jll"; compat=MUMPS_COMPAT_VERSION, platforms=filter(!Sys.iswindows, platforms)),
     Dependency("SCALAPACK32_jll";compat=SCALAPACK32_COMPAT_VERSION),
     Dependency("METIS_jll", compat=METIS_COMPAT_VERSION),
     Dependency("SCOTCH_jll"; compat=SCOTCH_COMPAT_VERSION),
