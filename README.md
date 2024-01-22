@@ -222,5 +222,12 @@ Which version of SuiteSparse is PETSc using anyways? To determine this, we looke
 
 In a next step, I made an attempt to activate MUMPS 5.6.2 as that is a version that is compiled for windows as well. Unfortunately it results in the usual runtime crash.
 
+A new attempt in which I used SuperLU_DIST but not MPI seemed to work (but couldnt be tested as all tests require MPI). One with MPI and Superlu_DIST gave the same [issue](https://github.com/boriskaus/test_PETSc_jll/actions/runs/7603659590/job/20705660211)
+
+Next on the list was removing the SOSUFFIX, which also doesnt change things. 
+
+##### PETSc 3.18.7 without MPI/without SuiteSparse 
+PETSc 3.18.7 doesn't actually work with SuiteSparse (as we need 5.13 which does note exist in BB). To ensure that 3.18.7 works again we deactivate MPI on windows and create a new build.
+
 
 
