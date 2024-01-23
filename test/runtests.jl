@@ -72,8 +72,8 @@ function run_petsc_ex(args::Cmd=``, cores::Int64=1, ex="ex4", ; wait=true, deact
         elseif ex=="ex42"
             cmd = `$(mpirun) -n $cores $(PETSc_jll.ex42_path) $args`
         elseif ex=="ex19"
-            #cmd = `$(mpirun) -n $cores $(PETSc_jll.ex19_int64_deb_path) $args`
-            cmd = `$(mpirun) -n $cores $(PETSc_jll.ex19_path) $args`
+            cmd = `$(mpirun) -n $cores $(PETSc_jll.ex19_int64_deb_path) $args`
+            #cmd = `$(mpirun) -n $cores $(PETSc_jll.ex19_path) $args`
             
         else
             error("unknown example")
