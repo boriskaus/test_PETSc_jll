@@ -240,7 +240,9 @@ In a first compile I accidentally still used openblas. Next iteration worked bet
 
 This was therefore revoked.
 
+At the end of this saga (at least) PETSc_jll 3.18.7+1 was finally merged with no SuiteSparse, no MPI for windows and no libblastrampoline (which was part of the discussion). See the PR [here](https://github.com/JuliaPackaging/Yggdrasil/pull/7989). 
+A final test if the uploaded PETSc from the repo shows that it works in all [cases](https://github.com/boriskaus/test_PETSc_jll/actions/runs/7632348215). Note that on julia 1.9 this still uses PETSc_jll 3.18.6+1, which I suspect is because the first release of 3.18.7 was limited to 3.10.
 
-
+What deserves more work in the future is trying to use LBT (see comment of Viral Shah @ the end of the PR), which would have the advantage that we can switch BLAS on the fly for PETSc (may bring speed advantages).
 
 
