@@ -91,17 +91,20 @@ end
 
 
 test_suitesparse = false
-test_superlu_dist = false
-test_mumps = false
+test_superlu_dist = true
+test_mumps = true
 
 if iswindows()
     is_parallel = false;        # activate parallel tests
     mpi_single_core = false;    # performs a single-core run without calling MPI
+    test_superlu_dist = false
+    test_mumps = false
+
 else
     is_parallel = true;         # activate parallel tests
     mpi_single_core = true;     # performs a single-core run without calling MPI
 end
-@testset "ex19, ex42, ex4" begin
+@testset verbose = true "ex19, ex42, ex4" begin
 
     if any(names(PETSc_jll) .== :ex19)
         # Note: ex19 is thew default test that PETSc performs @ the end of the installation process
