@@ -245,4 +245,5 @@ A final test if the uploaded PETSc from the repo shows that it works in all [cas
 
 What deserves more work in the future is trying to use LBT (see comment of Viral Shah @ the end of the PR), which would have the advantage that we can switch BLAS on the fly for PETSc (may bring speed advantages).
 
-
+##### PETSc 3.18.8 without MPI/without SuiteSparse 
+Downstream issues occured with 3.18.7+1 because 3.18.7+0 was compiled with SuiteSparse whereas 3.18.7+1 had no SuiteSparse support. Accordingly, the LaMEM_jll compilation did not work as it was looking for SuiteSparse files. This was resolved by re-releasing it as 3.18.8.
