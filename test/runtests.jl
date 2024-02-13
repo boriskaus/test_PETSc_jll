@@ -51,8 +51,8 @@ function run_petsc_ex(args::Cmd=``, cores::Int64=1, ex="ex4", ; wait=true, deact
     if cores==1 & !mpi_single_core
         # Run LaMEM on a single core, which does not require a working MPI
         if ex=="ex4"
-            #cmd = `$(PETSc_jll.ex4()) $args`
-            cmd = `$(PETSc_jll.ex4_int64_deb())  $args`
+            cmd = `$(PETSc_jll.ex4()) $args`
+            #cmd = `$(PETSc_jll.ex4_int64_deb())  $args`
         elseif ex=="ex42"
             cmd = `$(PETSc_jll.ex42())  $args`
         elseif ex=="ex19"
@@ -69,8 +69,8 @@ function run_petsc_ex(args::Cmd=``, cores::Int64=1, ex="ex4", ; wait=true, deact
     else
         # create command-line object
         if ex=="ex4"
-            #cmd = `$(mpirun) -n $cores $(PETSc_jll.ex4_path) $args`
-            cmd = `$(mpirun) -n $cores $(PETSc_jll.ex4_int64_deb_path) $args`
+            cmd = `$(mpirun) -n $cores $(PETSc_jll.ex4_path) $args`
+            #cmd = `$(mpirun) -n $cores $(PETSc_jll.ex4_int64_deb_path) $args`
         elseif ex=="ex42"
             cmd = `$(mpirun) -n $cores $(PETSc_jll.ex42_path) $args`
         elseif ex=="ex19"
