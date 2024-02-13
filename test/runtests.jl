@@ -167,6 +167,14 @@ end
             @test r.exitcode == 0
         end
     end
+
+    @testset "ex42 2: superlu_dist" begin
+        if test_superlu_dist & is_parallel
+            args = `-stokes_ksp_monitor_short -stokes_ksp_converged_reason -stokes_pc_type lu -stokes_pc_factor_mat_solver_type superlu_dist `;
+            r = run_petsc_ex(args, 2, "ex42")
+            @test r.exitcode == 0
+        end
+    end
     
     @testset "ex42 3: redundant lu" begin
         if  is_parallel
@@ -248,7 +256,6 @@ end
         end
     end
 
-    
     @testset "ex4  4: direct superlu_dist" begin
         if test_superlu_dist & is_parallel
             args  = `-dim 2 -coefficients layers -nondimensional 0 -stag_grid_x 13 -stag_grid_y 8 -pc_type lu -pc_factor_mat_solver_type superlu_dist -ksp_converged_reason`;
