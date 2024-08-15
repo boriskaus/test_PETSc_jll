@@ -162,6 +162,10 @@ else
 end
 @testset verbose = true "ex19, ex42, ex4" begin
 
+    @testset "test_MWE" begin
+        include("test_MWE.jl")
+    end
+    
     if any(names(PETSc_jll) .== :ex19)
         # Note: ex19 is thew default test that PETSc performs @ the end of the installation process
         @testset "ex19 1: iterative" begin
