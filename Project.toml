@@ -4,6 +4,8 @@ authors = ["Boris Kaus <kaus@uni-mainz.de>"]
 version = "0.1.0"
 
 [deps]
+CompilerSupportLibraries_jll = "e66e0078-7015-5450-92f7-15fbd957f2ae"
+OpenBLAS32_jll = "656ef2d0-ae68-5445-9ca0-591084a874a2"
 PETSc_jll = "8fa3689e-f0b9-5420-9873-adf6ccf46f2d"
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"

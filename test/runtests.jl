@@ -1,5 +1,9 @@
 using Test, Pkg, Base.Sys
 
+# BLAS library used here:
+using OpenBLAS32_jll, CompilerSupportLibraries_jll
+            
+
 export mpirun, deactivate_multithreading, run_petsc_ex
 
 # ensure that we use the correct version of the package 
@@ -42,6 +46,51 @@ function deactivate_multithreading(cmd::Cmd)
     return cmd
 end
 
+# Shamelessly stolen from the tests of LBT 
+if Sys.iswindows()
+    LIBPATH_env = "PATH"
+    LIBPATH_default = ""
+    pathsep = ';'
+    binlib = "bin"
+    shlib_ext = "dll"
+elseif Sys.isapple()
+    LIBPATH_env = "DYLD_FALLBACK_LIBRARY_PATH"
+    LIBPATH_default = "~/lib:/usr/local/lib:/lib:/usr/lib"
+    pathsep = ':'
+    binlib = "lib"
+    shlib_ext = "dylib"
+else
+    LIBPATH_env = "LD_LIBRARY_PATH"
+    LIBPATH_default = ""
+    pathsep = ':'
+    binlib = "lib"
+    shlib_ext = "so"
+end
+
+function append_libpath(paths::Vector{<:AbstractString}, ENV::Vector{<:AbstractString})
+    
+    return join(vcat(paths..., ENV[first(findall(contains.(ENV,"$LIBPATH_env")))]), pathsep)
+end
+
+
+function add_LBT_flags(cmd::Cmd)
+    # using LBT requires to set the following environment variables
+    libdirs = unique(vcat(OpenBLAS32_jll.LIBPATH_list..., CompilerSupportLibraries_jll.LIBPATH_list...))
+    backing_libs = OpenBLAS32_jll.libopenblas_path
+    
+    env = Dict(
+        # We need to tell it how to find CSL at run-time
+        LIBPATH_env => append_libpath(libdirs, cmd.env),
+        "LBT_DEFAULT_LIBS" => backing_libs,
+        "LBT_STRICT" => 1,
+        "LBT_VERBOSE" => 1,
+    )
+    cmd = addenv(cmd, env)
+    
+    return cmd
+end
+
+
 """
     r = run_petsc_ex(ParamFile::String, cores::Int64=1, ex="ex4", args::String=""; wait=true, deactivate_multithreads=true, mpi_single_core=false)
 runs a petsc example
@@ -64,7 +113,10 @@ function run_petsc_ex(args::Cmd=``, cores::Int64=1, ex="ex4", ; wait=true, deact
         if deactivate_multithreads
             cmd = deactivate_multithreading(cmd)
         end
-
+        
+      
+        cmd = add_LBT_flags(cmd)
+        
         r = run(cmd, wait=wait);
     else
         # create command-line object
@@ -83,6 +135,9 @@ function run_petsc_ex(args::Cmd=``, cores::Int64=1, ex="ex4", ; wait=true, deact
             cmd = deactivate_multithreading(cmd)
         end
 
+        # add stuff related to LBT
+        cmd = add_LBT_flags(cmd)
+        
         # Run example in parallel
         r = run(cmd, wait=wait);
     end
@@ -155,6 +210,7 @@ end
         end
     end
 
+    
     @testset "ex42 1: serial" begin
         args = `-stokes_ksp_monitor_short -stokes_ksp_converged_reason -stokes_pc_type lu`;
         r = run_petsc_ex(args, 1, "ex42", mpi_single_core=mpi_single_core)
@@ -346,6 +402,8 @@ end
             @test r.exitcode == 0
         end
     end
+    #=
+    =#
     
 
 end
