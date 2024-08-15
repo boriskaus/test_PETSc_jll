@@ -266,3 +266,4 @@ We start with a version that only has LBT but no other dependencies. It compiles
 julia build_tarballs_3.21.4_LBT.jl --debug --verbose --deploy="boriskaus/PETSc_jll.jl" aarch64-apple-darwin-libgfortran5-mpi+mpich,x86_64-linux-gnu-libgfortran5-mpi+mpich,x86_64-w64-mingw32-libgfortran5-mpi+microsoftmpi,x86_64-apple-darwin-libgfortran4-mpi+mpich,x86_64-w64-mingw32-libgfortran4-mpi+microsoftmpi,x86_64-linux-gnu-libgfortran4-mpi+mpich,x86_64-apple-darwin-libgfortran5-mpi+mpich
 ```
 
+The buildscript is available under `build_scripts/`, and a MWE to test the functionality with and without MPI is [here](https://github.com/boriskaus/test_PETSc_jll/blob/main/test/test_MWE.jl).
