@@ -246,3 +246,23 @@ What deserves more work in the future is trying to use LBT (see comment of Viral
 
 ##### PETSc 3.18.8 without MPI/without SuiteSparse 
 Downstream issues occured with 3.18.7+1 because 3.18.7+0 was compiled with SuiteSparse whereas 3.18.7+1 had no SuiteSparse support. Accordingly, the LaMEM_jll compilation did not work as it was looking for SuiteSparse files. This was resolved by re-releasing it as 3.18.8.
+
+
+### August 14, 2024 
+
+Given that the last effort took 1.5 months to resolve and I have a rather busy normal job, my motivation for restarting this effort for newer versions of PETSc has been rather small. What was clear from the 2024 PETSc conference, though, is that there is quite some demand for having precompiled libraries that work on all modern OS's.
+
+Examples are Firedrake, where this is the number 1 requested feature. Added complexity with firedrake is that it generates PETSc source files dynamically, so it would need to compile the files on the local system before deploying. Issue with that is that the PETSc compilation system hardcodes the library paths, which are obviously different on each local install.  
+Others (e.g. LibCEED developers) are interested to have a PETSc-julia interaction as julia can generate nice GPU kernels.
+
+During the last year, other issues turned up, such as newer versions of MPICH being suddenly incompatible with the various dependencies. The solution of that would have been to pin the version numbers rather than specifying a lower bound. More concretely, in my opinion the current way of linking the various dependencies as external dynamic libraries is a big part of the problem, and makes it too hard to maintain from my side. 
+
+In august (another holiday) a new effort was therefore started to see if I can make a fresh build with a newer version of PETSc, link it to suitesparse and see whether we can download the other external libraries as static, rather than dynamic, libraries. Another goal is to see whether we can use libblastrampoline (LBT)
+
+##### PETSc 3.21 with LBT 
+We start with a version that only has LBT but no other dependencies. It compiles fine with:
+
+```julia
+julia build_tarballs_3.21.4_LBT.jl --debug --verbose --deploy="boriskaus/PETSc_jll.jl" aarch64-apple-darwin-libgfortran5-mpi+mpich,x86_64-linux-gnu-libgfortran5-mpi+mpich,x86_64-w64-mingw32-libgfortran5-mpi+microsoftmpi,x86_64-apple-darwin-libgfortran4-mpi+mpich,x86_64-w64-mingw32-libgfortran4-mpi+microsoftmpi,x86_64-linux-gnu-libgfortran4-mpi+mpich,x86_64-apple-darwin-libgfortran5-mpi+mpich
+```
+
