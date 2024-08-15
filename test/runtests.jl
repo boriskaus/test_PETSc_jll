@@ -1,7 +1,7 @@
 using Test, Pkg, Base.Sys
 
 # BLAS library used here:
-using OpenBLAS32_jll, CompilerSupportLibraries_jll
+using OpenBLAS_jll, CompilerSupportLibraries_jll
             
 
 export mpirun, deactivate_multithreading, run_petsc_ex
@@ -75,8 +75,8 @@ end
 
 function add_LBT_flags(cmd::Cmd)
     # using LBT requires to set the following environment variables
-    libdirs = unique(vcat(OpenBLAS32_jll.LIBPATH_list..., CompilerSupportLibraries_jll.LIBPATH_list...))
-    backing_libs = OpenBLAS32_jll.libopenblas_path
+    libdirs = unique(vcat(OpenBLAS_jll.LIBPATH_list..., CompilerSupportLibraries_jll.LIBPATH_list...))
+    backing_libs = OpenBLAS_jll.libopenblas_path
     
     env = Dict(
         # We need to tell it how to find CSL at run-time
