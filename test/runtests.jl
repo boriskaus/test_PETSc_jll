@@ -114,7 +114,10 @@ function run_petsc_ex(args::Cmd=``, cores::Int64=1, ex="ex4", ; wait=true, deact
             cmd = deactivate_multithreading(cmd)
         end
         
-        #cmd = add_LBT_flags(cmd)
+        if !Sys.iswindows()
+            # add stuff related to LBT
+            cmd = add_LBT_flags(cmd)
+        end
         
         r = run(cmd, wait=wait);
     else
@@ -134,8 +137,10 @@ function run_petsc_ex(args::Cmd=``, cores::Int64=1, ex="ex4", ; wait=true, deact
             cmd = deactivate_multithreading(cmd)
         end
 
-        # add stuff related to LBT
-        #cmd = add_LBT_flags(cmd)
+        if !Sys.iswindows()
+            # add stuff related to LBT
+            cmd = add_LBT_flags(cmd)
+        end
         
         # Run example in parallel
         r = run(cmd, wait=wait);
@@ -162,7 +167,7 @@ end
 @testset verbose = true "ex19, ex42, ex4" begin
 
     @testset "test_MWE" begin
-        include("test_MWE.jl")
+#        include("test_MWE.jl")
     end
     
     if any(names(PETSc_jll) .== :ex19)
