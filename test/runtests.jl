@@ -154,14 +154,14 @@ test_superlu_dist = false
 test_mumps = false
 
 if iswindows()
-    is_parallel = false;        # activate parallel tests
+    is_parallel = true;        # activate parallel tests
     mpi_single_core = false;    # performs a single-core run without calling MPI
     test_superlu_dist = false
     test_mumps = false
 
 else
     is_parallel = true;         # activate parallel tests
-    mpi_single_core = true;     # performs a single-core run without calling MPI
+    mpi_single_core = true;     
 end
 @testset verbose = true "ex19, ex42, ex4" begin
 
