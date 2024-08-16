@@ -83,7 +83,7 @@ function add_LBT_flags(cmd::Cmd)
         LIBPATH_env => append_libpath(libdirs, cmd.env),
         "LBT_DEFAULT_LIBS" => backing_libs,
         "LBT_STRICT" => 1,
-        "LBT_VERBOSE" => 1,
+        "LBT_VERBOSE" => 0,
     )
 
     if !Sys.iswindows()
