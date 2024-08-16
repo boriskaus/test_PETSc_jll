@@ -80,8 +80,7 @@ cmd = `$(PETSc_jll.ex19_int64_deb())  $args`
 cmd = add_LBT_flags(cmd)
 
 r = run(cmd, wait=true);
-@test r.exitcode == 0
-;
+@test r.exitcode == 0;
 
 # parallel example
 @info "mpi example:"
