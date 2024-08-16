@@ -85,8 +85,11 @@ function add_LBT_flags(cmd::Cmd)
         "LBT_STRICT" => 1,
         "LBT_VERBOSE" => 1,
     )
-    cmd = addenv(cmd, env)
-    
+
+    if !Sys.iswindows()
+        # adding the environmental variables on windows seems to cause a crash
+        cmd = addenv(cmd, env)
+    end
     return cmd
 end
 
@@ -114,10 +117,8 @@ function run_petsc_ex(args::Cmd=``, cores::Int64=1, ex="ex4", ; wait=true, deact
             cmd = deactivate_multithreading(cmd)
         end
         
-        if !Sys.iswindows()
-            # add stuff related to LBT
-            cmd = add_LBT_flags(cmd)
-        end
+        # add stuff related to LBT on systems that support it
+        cmd = add_LBT_flags(cmd)
         
         r = run(cmd, wait=wait);
     else
@@ -137,11 +138,9 @@ function run_petsc_ex(args::Cmd=``, cores::Int64=1, ex="ex4", ; wait=true, deact
             cmd = deactivate_multithreading(cmd)
         end
 
-        if !Sys.iswindows()
-            # add stuff related to LBT
-            cmd = add_LBT_flags(cmd)
-        end
-        
+        # add stuff related to LBT
+        cmd = add_LBT_flags(cmd)
+
         # Run example in parallel
         r = run(cmd, wait=wait);
     end
