@@ -100,7 +100,7 @@ runs a petsc example
 """
 function run_petsc_ex(args::Cmd=``, cores::Int64=1, ex="ex4", ; wait=true, deactivate_multithreads=true, mpi_single_core=false)
         
-    
+
     if cores==1 & !mpi_single_core
         # Run LaMEM on a single core, which does not require a working MPI
         if ex=="ex4"
@@ -150,7 +150,7 @@ function run_petsc_ex(args::Cmd=``, cores::Int64=1, ex="ex4", ; wait=true, deact
 end
 
 
-test_suitesparse = false
+test_suitesparse = true
 test_superlu_dist = false
 test_mumps = false
 
