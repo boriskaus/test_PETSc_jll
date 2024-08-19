@@ -1,4 +1,4 @@
-# PETSc 3.21.4 with LBT, MUMPS (dynamic) and static compilations of SuiteSparse and SuperLU_DIST
+# PETSc 3.21.4 with LBT but no other dependencies
 using BinaryBuilder, Pkg
 using Base.BinaryPlatforms
 const YGGDRASIL_DIR = "../.."
@@ -19,7 +19,7 @@ PARMETIS_COMPAT_VERSION="4.0.6"
 
 MPItrampoline_compat_version="5.2.1"
 MicrosoftMPI_compat_version="~10.1.2" # fix to 10.1.2
-#MPICH_version="~4.1.2"    
+MPICH_compat_version="~4.1.2"    
 
 # Collection of sources required to build PETSc. Avoid using the git repository, it will
 # require building SOWING which fails in all non-linux platforms.
@@ -117,7 +117,8 @@ build_petsc()
     USE_SUPERLU_DIST=0    
     SUPERLU_DIST_LIB=""
     SUPERLU_DIST_INCLUDE=""
-    if [ -f "${libdir}/libsuperlu_dist_Int32.${dlext}" ] &&  [ "${1}" == "double" ] &&  [ "${3}" == "Int64" ]; then
+    #if [ -f "${libdir}/libsuperlu_dist_Int32.${dlext}" ] &&  [ "${1}" == "double" ] &&  [ "${3}" == "Int64" ]; then
+    if [ "${1}" == "double" ] &&  [ "${3}" == "Int64" ]; then
         USE_SUPERLU_DIST=1    
         #SUPERLU_DIST_LIB="--with-superlu_dist-lib=${libdir}/libsuperlu_dist_${3}.${dlext}"
         SUPERLU_DIST_LIB="--with-superlu_dist-lib=${libdir}/libsuperlu_dist_Int32.${dlext}"
@@ -191,6 +192,19 @@ build_petsc()
         _FOPTFLAGS='-O3' 
     fi
 
+    MPI_CC=mpicc
+    MPI_FC=mpif90
+    MPI_CXX=mpicxx
+    USE_SUITESPARSE=1
+    if [[ "${target}" == *-mingw* ]]; then
+        # since we don't use MPI on windows
+        MPI_CC=${CC}
+        MPI_FC=${FC}
+        MPI_CXX=${CXX}
+        USE_SUPERLU_DIST=0
+        USE_SUITESPARSE=0
+    fi
+
     echo "USE_SUPERLU_DIST="$USE_SUPERLU_DIST
     echo "USE_SUITESPARSE="$USE_SUITESPARSE
     echo "USE_MUMPS="$USE_MUMPS
@@ -209,18 +223,7 @@ build_petsc()
     
     mkdir $libdir/petsc/${PETSC_CONFIG}
   
-    #        --download-superlu_dist-cmake-arguments="-DMPI_C_COMPILER=/workspace/destdir/bin/mpicc -DMPI_CXX_COMPILER=/workspace/destdir/bin/mpicxx -DMPI_Fortran_COMPILER=/workspace/destdir/bin/mpif90" \
-    MPI_CC=mpicc
-    MPI_FC=mpif90
-    MPI_CXX=mpicxx
-    if [[ "${target}" == *-mingw* ]]; then
-        # since we don't use MPI on windows
-        MPI_CC=${CC}
-        MPI_FC=${FC}
-        MPI_CXX=${CXX}
-    fi
-    
-
+   
     # Step 1: build static libraries of external packages (happens during configure)    
     # Note that mpicc etc. should be indicated rather than ${CC} to compile external packages 
     ./configure --prefix=${libdir}/petsc/${PETSC_CONFIG} \
@@ -250,12 +253,10 @@ build_petsc()
         --with-mumps=${USE_MUMPS} \
         ${MUMPS_LIB} \
         ${MUMPS_INCLUDE} \
-        --download-suitesparse=1 \
+        --download-suitesparse=${USE_SUITESPARSE} \
         --download-suitesparse-shared=0 \
-        --download-superlu_dist=1 \
+        --download-superlu_dist=${USE_SUPERLU_DIST} \
         --download-superlu_dist-shared=0 \
-        --download-ctetgen=1 \
-        --download-ctetgen-shared=0 \
         --SOSUFFIX=${PETSC_CONFIG} \
         --with-shared-libraries=1 \
         --with-clean=1
@@ -371,6 +372,7 @@ platforms = expand_cxxstring_abis(platforms)
 
 platforms, platform_dependencies = MPI.augment_platforms(platforms; 
                                         MPItrampoline_compat=MPItrampoline_compat_version,
+                                        MPICH_compat = MPICH_compat_version,
                                         MicrosoftMPI_compat = MicrosoftMPI_compat_version )
 
 # Avoid platforms where the MPI implementation isn't supported
@@ -424,7 +426,8 @@ dependencies = [
     #Dependency("SuperLU_DIST_jll"; compat=SUPERLUDIST_COMPAT_VERSION, platforms=filter(!Sys.iswindows, platforms)),
 
     Dependency("MUMPS_jll"; compat=MUMPS_COMPAT_VERSION, platforms=filter(!Sys.iswindows, platforms)),
-    Dependency("SCALAPACK32_jll";compat=SCALAPACK32_COMPAT_VERSION),
+    Dependency("SCALAPACK32_jl
+    l";compat=SCALAPACK32_COMPAT_VERSION),
     Dependency("METIS_jll", compat=METIS_COMPAT_VERSION),
     Dependency("SCOTCH_jll"; compat=SCOTCH_COMPAT_VERSION),
     Dependency("PARMETIS_jll"; compat=PARMETIS_COMPAT_VERSION),
