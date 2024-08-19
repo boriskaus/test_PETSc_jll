@@ -267,3 +267,15 @@ julia build_tarballs_3.21.4_LBT.jl --debug --verbose --deploy="boriskaus/PETSc_j
 ```
 
 The buildscript is available under `build_scripts/`, and a MWE to test the functionality with and without MPI is [here](https://github.com/boriskaus/test_PETSc_jll/blob/main/test/test_MWE.jl).
+After some work, I was able to get this up and running using LBT on linux/max and openBLAS on windows. The crucial point was that one has to specify which BLAS library to use with environmental variables when running the codes. On windows, I likekely didn't do this correctly.
+I did not manage to get MPI running on windows (same error as before), so abandoned that effort
+
+##### PETSc 3.21 with LBT and static compilations of SuiteSparse and SuperLU_Dist
+The previous build did not have SuiteSparse (as it conflicts with julia) and SuperLU_Dist was broken (even though it works fine if compiled individually).
+It turns out that it is possible to compile them as `static` libraries during the configuration of PETSc using the flags:
+```
+  --download-suitesparse=1 \
+  --download-suitesparse-shared=0 
+``` 
+The major advantage is that we use the PETSc build system in that case. It won't have name conflicts as there will still only be a single dynamic library for PETSc at the end. 
+I did attempt to do the same for MUMPS, but that failed. As integrating the dynamic MUMPS compilation was working fine already that is not too much of an issue.
