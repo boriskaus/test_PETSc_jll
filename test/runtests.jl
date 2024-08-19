@@ -151,8 +151,8 @@ end
 
 
 test_suitesparse = true
-test_superlu_dist = false
-test_mumps = false
+test_superlu_dist = true
+test_mumps = true
 
 if iswindows()
     is_parallel = true;        # activate parallel tests
