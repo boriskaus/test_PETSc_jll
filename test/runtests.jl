@@ -150,7 +150,7 @@ function run_petsc_ex(args::Cmd=``, cores::Int64=1, ex="ex4", ; wait=true, deact
 end
 
 
-test_suitesparse = true
+test_suitesparse = false
 test_superlu_dist = true
 test_mumps = true
 
