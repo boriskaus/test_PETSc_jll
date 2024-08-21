@@ -291,3 +291,5 @@ After many attempts, I did manage to get a compilation working with:
 - mumps on linux compiled statically
 - mumps on mac as dynamic library
 - no MPI on windows
+
+After this worked, I ported stuff to 3.19.6, which worked after a [while](https://github.com/JuliaPackaging/Yggdrasil/pull/6594).
