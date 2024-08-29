@@ -12,6 +12,7 @@ Pkg.add("PETSc_jll")
 using PETSc_jll
 
 # Show the host platform (debug info)
+@show Base.BinaryPlatforms.HostPlatform()
 @show  PETSc_jll.host_platform
 @show  names(PETSc_jll)
 
