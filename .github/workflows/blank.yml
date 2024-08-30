@@ -16,10 +16,12 @@ jobs:
         version:
           - '1.9'
           - '1.10'
+          - '~1.11.0-0'
           - 'nightly'
         os:
           - ubuntu-latest
           - macOS-latest
+          - macos-14
           - windows-latest
         arch:
           - x64
