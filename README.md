@@ -301,6 +301,7 @@ A renewed effort was undertaken to compile PETSc 3.21.5 with SuiteSparse, MUMPS,
 Other changes are that we now use the latest MPITrampoline version (5.5.0) and that MPICH was upgraded to version 4.2.2. 
 Whereas this seems to compile fine locally, the question remains whether this will work at runtime as `SCALAPACK32_jll` was compiled last year (likely with an older version of MPICH_jll; unfortunately I can no longer see from the logs which one). 
 
+Works [fine](https://github.com/boriskaus/test_PETSc_jll/actions/runs/11069749184/job/30757957374) for julia 1.10 and higher (some issues on mac for julia 1.9)
 
 
 
