@@ -294,3 +294,17 @@ After many attempts, I did manage to get a compilation working with:
 - no MPI on windows
 
 After this worked, I ported stuff to 3.19.6, which worked after a [while](https://github.com/JuliaPackaging/Yggdrasil/pull/6594).
+
+
+### September 27, 2024 
+A renewed effort was undertaken to compile PETSc 3.21.5 with SuiteSparse, MUMPS, SUPERLU_Dist, TetGen, Triangle. It also turned out to be possible to compile it with HYPRE (as that has become relevant again in the group, which required the configure options `--build --host`), and a new effort was made to include HDF5. HDF5 cannot be compiled in batch systems, so was linked as `HDF5_jll`. Creating a patch file for mpi-constants took a few efforts (this should really be merged into PETSc).
+Other changes are that we now use the latest MPITrampoline version (5.5.0) and that MPICH was upgraded to version 4.2.2. 
+Whereas this seems to compile fine locally, the question remains whether this will work at runtime as `SCALAPACK32_jll` was compiled last year (likely with an older version of MPICH_jll; unfortunately I can no longer see from the logs which one). 
+
+
+
+
+
+
+
+
