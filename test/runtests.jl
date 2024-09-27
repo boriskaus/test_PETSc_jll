@@ -3,7 +3,6 @@ using Test, Pkg, Base.Sys
 # BLAS library used here:
 using OpenBLAS32_jll, CompilerSupportLibraries_jll
             
-
 export mpirun, deactivate_multithreading, run_petsc_ex
 
 # ensure that we use the correct version of the package 
