@@ -174,8 +174,9 @@ end
 @testset verbose = true "ex19, ex42, ex4" begin
 
     @testset "test_MWE" begin
-#        include("test_MWE.jl")
+        include("test_MWE.jl")
     end
+    
     
     #=
     if any(names(PETSc_jll) .== :ex19)
@@ -230,7 +231,7 @@ end
         end
         
     end
-    =#
+
     
     @testset "ex42 1: serial" begin
         args = `-stokes_ksp_monitor_short -stokes_ksp_converged_reason -stokes_pc_type lu`;
@@ -423,6 +424,6 @@ end
             @test r.exitcode == 0
         end
     end
-
+    =#
 end
 

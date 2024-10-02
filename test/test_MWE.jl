@@ -5,10 +5,11 @@ using OpenBLAS32_jll, CompilerSupportLibraries_jll
 
 
 # ensure that we use the correct version of the package 
-Pkg.add(url="https://github.com/boriskaus/PETSc_jll.jl")
+#Pkg.add(url="https://github.com/boriskaus/PETSc_jll.jl")
 #Pkg.add("PETSc_jll")
-using PETSc_jll
+#using PETSc_jll
 
+#=
 #setup MPI
 const mpiexec = if isdefined(PETSc_jll,:MPICH_jll)
     PETSc_jll.MPICH_jll.mpiexec()
@@ -22,6 +23,8 @@ else
     println("Be careful! No MPI library detected; parallel runs won't work")
     nothing
 end
+
+=#
 
 if !isnothing(mpiexec)
     mpirun = setenv(mpiexec, PETSc_jll.JLLWrappers.JLLWrappers.LIBPATH_env=>PETSc_jll.LIBPATH[]);
@@ -52,24 +55,6 @@ end
 
 function append_libpath(paths::Vector{<:AbstractString}, ENV::Vector{<:AbstractString})
     return join(vcat(paths..., ENV[first(findall(contains.(ENV,"$LIBPATH_env")))]), pathsep)
-end
-
-
-function add_LBT_flags(cmd::Cmd)
-    # using LBT requires to set the following environment variables
-    libdirs = unique(vcat(OpenBLAS32_jll.LIBPATH_list..., CompilerSupportLibraries_jll.LIBPATH_list...))
-    backing_libs = OpenBLAS32_jll.libopenblas_path
-    
-    env = Dict(
-        # We need to tell it how to find CSL at run-time
-        LIBPATH_env => append_libpath(libdirs, cmd.env),
-        "LBT_DEFAULT_LIBS" => backing_libs,
-        "LBT_STRICT" => 1,
-        "LBT_VERBOSE" => 1,
-    )
-    cmd = addenv(cmd, env)
-    
-    return cmd
 end
 
 
