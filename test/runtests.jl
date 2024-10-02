@@ -112,6 +112,9 @@ function run_petsc_ex(args::Cmd=``, cores::Int64=1, ex="ex4", ; wait=true, deact
         elseif ex=="ex19"
             cmd = `$(PETSc_jll.ex19_int64_deb())  $args`
             #cmd = `$(PETSc_jll.ex19())  $args`
+        elseif ex=="ex19_32"
+            cmd = `$(PETSc_jll.ex19_int32())  $args`
+            #cmd = `$(PETSc_jll.ex19())  $args`
         else
             error("unknown example")
         end
@@ -133,6 +136,9 @@ function run_petsc_ex(args::Cmd=``, cores::Int64=1, ex="ex4", ; wait=true, deact
         elseif ex=="ex19"
             cmd = `$(mpirun) -n $cores $(PETSc_jll.ex19_int64_deb_path) $args`
             #cmd = `$(mpirun) -n $cores $(PETSc_jll.ex19_path) $args`
+        elseif ex=="ex19_32"
+            cmd = `$(PETSc_jll.ex19_int32())  $args`
+            #cmd = `$(PETSc_jll.ex19())  $args`            
         else
             error("unknown example")
         end
@@ -173,51 +179,54 @@ end
     end
     
     if any(names(PETSc_jll) .== :ex19)
-        # Note: ex19 is thew default test that PETSc performs @ the end of the installation process
-        @testset "ex19 1: iterative" begin
-            args = `-da_refine 3 -pc_type mg -ksp_type fgmres`;
-            r = run_petsc_ex(args, 1, "ex19", mpi_single_core=mpi_single_core)
-            @test r.exitcode == 0
-        end
-        
-        # testex19_mpi:
-        @testset "ex19 2: mpi" begin
-            if is_parallel
+
+        for ex19_case in ["ex19", "ex19_32"]
+            # Note: ex19 is the default test that PETSc performs @ the end of the installation process
+            @testset "$ex19_case 1: iterative" begin
                 args = `-da_refine 3 -pc_type mg -ksp_type fgmres`;
-                r = run_petsc_ex(args, 2, "ex19")
+                r = run_petsc_ex(args, 1, ex19_case, mpi_single_core=mpi_single_core)
                 @test r.exitcode == 0
             end
-        end
-
-        # runex19_fieldsplit_mumps
-        @testset "ex19 2: fieldsplit_mumps" begin
-            if test_mumps & is_parallel
-                args = `-pc_type fieldsplit -pc_fieldsplit_block_size 4 -pc_fieldsplit_type SCHUR -pc_fieldsplit_0_fields 0,1,2 -pc_fieldsplit_1_fields 3 -fieldsplit_0_pc_type lu -fieldsplit_1_pc_type lu -snes_monitor_short -ksp_monitor_short  -fieldsplit_0_pc_factor_mat_solver_type mumps -fieldsplit_1_pc_factor_mat_solver_type mumps`;
-                r = run_petsc_ex(args, 2, "ex19")
-                @test r.exitcode == 0
+            
+            # testex19_mpi:
+            @testset "$ex19_case 2: mpi" begin
+                if is_parallel
+                    args = `-da_refine 3 -pc_type mg -ksp_type fgmres`;
+                    r = run_petsc_ex(args, 2, ex19_case)
+                    @test r.exitcode == 0
+                end
             end
-        end
 
-        # runex19_superlu_dist
-        @testset "ex19 2: fieldsplit_superlu_dist" begin
-            if test_superlu_dist & is_parallel
-                #args = `-da_grid_x 20 -da_grid_y 20 -pc_type lu -pc_factor_mat_solver_type superlu_dist`;
-                args = `-pc_type fieldsplit -pc_fieldsplit_block_size 4 -pc_fieldsplit_type SCHUR -pc_fieldsplit_0_fields 0,1,2 -pc_fieldsplit_1_fields 3 -fieldsplit_0_pc_type lu -fieldsplit_1_pc_type lu -snes_monitor_short -ksp_monitor_short  -fieldsplit_0_pc_factor_mat_solver_type superlu_dist -fieldsplit_1_pc_factor_mat_solver_type superlu_dist`;
-                
-                r = run_petsc_ex(args, 2, "ex19")
-                @test r.exitcode == 0
+            # runex19_fieldsplit_mumps
+            @testset "$ex19_case 2: fieldsplit_mumps" begin
+                if test_mumps & is_parallel
+                    args = `-pc_type fieldsplit -pc_fieldsplit_block_size 4 -pc_fieldsplit_type SCHUR -pc_fieldsplit_0_fields 0,1,2 -pc_fieldsplit_1_fields 3 -fieldsplit_0_pc_type lu -fieldsplit_1_pc_type lu -snes_monitor_short -ksp_monitor_short  -fieldsplit_0_pc_factor_mat_solver_type mumps -fieldsplit_1_pc_factor_mat_solver_type mumps`;
+                    r = run_petsc_ex(args, 2, ex19_case)
+                    @test r.exitcode == 0
+                end
+            end
+
+            # runex19_superlu_dist
+            @testset "$ex19_case 2: fieldsplit_superlu_dist" begin
+                if test_superlu_dist & is_parallel
+                    #args = `-da_grid_x 20 -da_grid_y 20 -pc_type lu -pc_factor_mat_solver_type superlu_dist`;
+                    args = `-pc_type fieldsplit -pc_fieldsplit_block_size 4 -pc_fieldsplit_type SCHUR -pc_fieldsplit_0_fields 0,1,2 -pc_fieldsplit_1_fields 3 -fieldsplit_0_pc_type lu -fieldsplit_1_pc_type lu -snes_monitor_short -ksp_monitor_short  -fieldsplit_0_pc_factor_mat_solver_type superlu_dist -fieldsplit_1_pc_factor_mat_solver_type superlu_dist`;
+                    
+                    r = run_petsc_ex(args, 2, ex19_case)
+                    @test r.exitcode == 0
+                end
+            end
+            
+            # runex19_suitesparse
+            @testset "$ex19_case 1: suitesparse" begin
+                if test_suitesparse
+                    args = `-da_refine 3 -snes_monitor_short -pc_type lu -pc_factor_mat_solver_type umfpack`;
+                    r = run_petsc_ex(args, 1, "ex19", mpi_single_core=mpi_single_core)
+                    @test r.exitcode == 0
+                end
             end
         end
         
-        
-        # runex19_suitesparse
-        @testset "ex19 1: suitesparse" begin
-            if test_suitesparse
-                args = `-da_refine 3 -snes_monitor_short -pc_type lu -pc_factor_mat_solver_type umfpack`;
-                r = run_petsc_ex(args, 1, "ex19", mpi_single_core=mpi_single_core)
-                @test r.exitcode == 0
-            end
-        end
     end
 
     
