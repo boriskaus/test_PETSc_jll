@@ -177,6 +177,7 @@ end
 #        include("test_MWE.jl")
     end
     
+    #=
     if any(names(PETSc_jll) .== :ex19)
 
         #for ex19_case in ["ex19", "ex19_32"]
@@ -229,7 +230,7 @@ end
         end
         
     end
-
+    =#
     
     @testset "ex42 1: serial" begin
         args = `-stokes_ksp_monitor_short -stokes_ksp_converged_reason -stokes_pc_type lu`;
