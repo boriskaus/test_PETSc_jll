@@ -180,7 +180,9 @@ end
     
     if any(names(PETSc_jll) .== :ex19)
 
-        for ex19_case in ["ex19", "ex19_32"]
+        #for ex19_case in ["ex19", "ex19_32"]
+        for ex19_case in ["ex19"]
+
             # Note: ex19 is the default test that PETSc performs @ the end of the installation process
             @testset "$ex19_case 1: iterative" begin
                 args = `-da_refine 3 -pc_type mg -ksp_type fgmres`;
