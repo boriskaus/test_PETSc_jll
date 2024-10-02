@@ -166,7 +166,6 @@ if iswindows()
     test_suitesparse = false
     test_superlu_dist = false
     test_mumps = false
-
 else
     is_parallel = true;         # activate parallel tests
     mpi_single_core = true;     
