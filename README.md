@@ -303,6 +303,11 @@ Whereas this seems to compile fine locally, the question remains whether this wi
 
 Works [fine](https://github.com/boriskaus/test_PETSc_jll/actions/runs/11069749184/job/30757957374) for julia 1.10 and higher (some issues on mac for julia 1.9)
 
+This [worked](https://github.com/JuliaPackaging/Yggdrasil/pull/9335) a few weeks later, but was not yet merged before the next version of PETSc was released. We did pin the version of MPICH to 4.1.2
+
+### October 2, 2024
+A new compilation of 3.22.0 was surprisingly smooth and there was no need to change the patch files (for a change). Yet, it turns out that all `MPICH` versions 4.2.0, 4.2.1 and 4.2.2 all resulted in segfaults on apple systems (fine on linux; windows remains broken). Several things were attempted resulting from a conversation on slack.
+
 
 
 
