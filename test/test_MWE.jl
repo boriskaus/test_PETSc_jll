@@ -62,7 +62,6 @@ end
 @info "single processor example:"
 args = `-da_refine 3 -pc_type mg -ksp_type fgmres`;
 cmd = `$(PETSc_jll.ex19_int64_deb())  $args`
-cmd = add_LBT_flags(cmd)
 
 r = run(cmd, wait=true);
 @test r.exitcode == 0;
@@ -72,7 +71,6 @@ r = run(cmd, wait=true);
 args = `-da_refine 3 -pc_type mg -ksp_type fgmres`;
 cores = 2
 cmd = `$(mpirun) -n $cores $(PETSc_jll.ex19_int64_deb_path) $args`
-cmd = add_LBT_flags(cmd)
 r = run(cmd, wait=true);
 @test r.exitcode == 0
 
