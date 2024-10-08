@@ -1,7 +1,7 @@
 using Test, Pkg, Base.Sys
 
 # BLAS library used here:
-using OpenBLAS32_jll, CompilerSupportLibraries_jll
+using OpenBLAS32_jll, CompilerSupportLibraries_jll, MPIPreferences
             
 export mpirun, deactivate_multithreading, run_petsc_ex
 
@@ -17,29 +17,27 @@ using PETSc_jll
 @show  names(PETSc_jll)
 
 #setup MPI
-const mpiexec = if isdefined(PETSc_jll,:MPICH_jll)
-    PETSc_jll.MPICH_jll.mpiexec()
+if isdefined(PETSc_jll,:MPICH_jll)
+    const mpiexec = PETSc_jll.MPICH_jll.mpiexec()
+    const MPI_LIBPATH = PETSc_jll.MPICH_jll.LIBPATH
 elseif isdefined(PETSc_jll,:MicrosoftMPI_jll) 
-    PETSc_jll.MicrosoftMPI_jll.mpiexec()
+    const mpiexec = PETSc_jll.MicrosoftMPI_jll.mpiexec()
+    const MPI_LIBPATH = PETSc_jll.MicrosoftMPI_jll.LIBPATH
 elseif isdefined(PETSc_jll,:OpenMPI_jll) 
-    PETSc_jll.OpenMPI_jll.mpiexec()
+    const mpiexec = PETSc_jll.OpenMPI_jll.mpiexec()
+    const MPI_LIBPATH = PETSc_jll.OpenMPI_jll.LIBPATH
 elseif isdefined(PETSc_jll,:MPItrampoline_jll) 
-    PETSc_jll.MPItrampoline_jll.mpiexec()
+    const mpiexec = PETSc_jll.MPItrampoline_jll.mpiexec()
+    const MPI_LIBPATH = PETSc_jll.MPItrampoline_jll.LIBPATH
 else
     println("Be careful! No MPI library detected; parallel runs won't work")
-    nothing
+    const mpiexec = nothing
+    const MPI_LIBPATH = Ref{String}("")
 end
 
 @show mpiexec
 
-if !isnothing(mpiexec)
-    key = PETSc_jll.JLLWrappers.JLLWrappers.LIBPATH_env
-    mpirun = addenv(mpiexec, key=>join((PETSc_jll.LIBPATH[], PETSc_jll.MPICH_jll.LIBPATH[]), ";"));
 
-#    mpirun = setenv(mpiexec, PETSc_jll.JLLWrappers.JLLWrappers.LIBPATH_env=>PETSc_jll.LIBPATH[]);
-else
-    mpirun = nothing;
-end
 
 function deactivate_multithreading(cmd::Cmd)
     # multithreading of the BLAS libraries that is installed by default with the julia BLAS
@@ -69,6 +67,15 @@ else
     pathsep = ':'
     binlib = "lib"
     shlib_ext = "so"
+end
+
+if !isnothing(mpiexec)
+    key = PETSc_jll.JLLWrappers.JLLWrappers.LIBPATH_env
+    mpirun = addenv(mpiexec, key=>join((PETSc_jll.LIBPATH[], MPI_LIBPATH[]), pathsep));
+
+#    mpirun = setenv(mpiexec, PETSc_jll.JLLWrappers.JLLWrappers.LIBPATH_env=>PETSc_jll.LIBPATH[]);
+else
+    mpirun = nothing;
 end
 
 function append_libpath(paths::Vector{<:AbstractString}, ENV::Vector{<:AbstractString})
