@@ -7,8 +7,8 @@ export mpirun, deactivate_multithreading, run_petsc_ex
 
 
 # ensure that we use the correct version of the package 
-Pkg.add(url="https://github.com/boriskaus/PETSc_jll.jl")
-#Pkg.add("PETSc_jll")
+#Pkg.add(url="https://github.com/boriskaus/PETSc_jll.jl")
+Pkg.add("PETSc_jll")
 using PETSc_jll
 
 # Show the host platform (debug info)
@@ -33,7 +33,10 @@ end
 @show mpiexec
 
 if !isnothing(mpiexec)
-    mpirun = setenv(mpiexec, PETSc_jll.JLLWrappers.JLLWrappers.LIBPATH_env=>PETSc_jll.LIBPATH[]);
+    key = PETSc_jll.JLLWrappers.JLLWrappers.LIBPATH_env
+    mpirun = addenv(mpiexec, key=>join((PETSc_jll.LIBPATH[], PETSc_jll.MPICH_jll.LIBPATH[]), ";"));
+
+#    mpirun = setenv(mpiexec, PETSc_jll.JLLWrappers.JLLWrappers.LIBPATH_env=>PETSc_jll.LIBPATH[]);
 else
     mpirun = nothing;
 end
@@ -173,12 +176,11 @@ else
 end
 @testset verbose = true "ex19, ex42, ex4" begin
 
-    @testset "test_MWE" begin
-        include("test_MWE.jl")
-    end
+    #@testset "test_MWE" begin
+    #    include("test_MWE.jl")
+    #end
     
     
-    #=
     if any(names(PETSc_jll) .== :ex19)
 
         #for ex19_case in ["ex19", "ex19_32"]
@@ -424,6 +426,6 @@ end
             @test r.exitcode == 0
         end
     end
-    =#
+    
 end
 
