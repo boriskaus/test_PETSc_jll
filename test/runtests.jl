@@ -1,7 +1,7 @@
 using Test, Pkg, Base.Sys
 
 # BLAS library used here:
-using OpenBLAS32_jll, CompilerSupportLibraries_jll, MPIPreferences
+using CompilerSupportLibraries_jll, MPIPreferences
             
 export mpirun, deactivate_multithreading, run_petsc_ex
 
@@ -10,6 +10,11 @@ export mpirun, deactivate_multithreading, run_petsc_ex
 Pkg.add(url="https://github.com/boriskaus/PETSc_jll.jl")
 #Pkg.add("PETSc_jll")
 using PETSc_jll
+
+Pkg.add("OpenBLAS32")
+using OpenBLAS32
+
+
 
 # Show the host platform (debug info)
 @show Base.BinaryPlatforms.HostPlatform()
@@ -86,15 +91,17 @@ end
 
 function add_LBT_flags(cmd::Cmd)
     # using LBT requires to set the following environment variables
-    libdirs = unique(vcat(OpenBLAS32_jll.LIBPATH_list..., CompilerSupportLibraries_jll.LIBPATH_list...))
-    backing_libs = OpenBLAS32_jll.libopenblas_path
+    #libdirs = unique(vcat(OpenBLAS32_jll.LIBPATH_list..., CompilerSupportLibraries_jll.LIBPATH_list...))
+    libdirs = unique(vcat(CompilerSupportLibraries_jll.LIBPATH_list...))
+    
+    #backing_libs = OpenBLAS32_jll.libopenblas_path
     
     env = Dict(
         # We need to tell it how to find CSL at run-time
         LIBPATH_env => append_libpath(libdirs, cmd.env),
-        "LBT_DEFAULT_LIBS" => backing_libs,
-        "LBT_STRICT" => 1,
-        "LBT_VERBOSE" => 0,
+        #"LBT_DEFAULT_LIBS" => backing_libs,
+        #"LBT_STRICT" => 1,
+        #"LBT_VERBOSE" => 0,
     )
 
     if !Sys.iswindows()
