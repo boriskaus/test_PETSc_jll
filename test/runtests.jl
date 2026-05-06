@@ -10,8 +10,8 @@ Pkg.add(url="https://github.com/boriskaus/PETSc_jll.jl")
 #Pkg.add("PETSc_jll")
 using PETSc_jll
 
-Pkg.add("OpenBLAS32")
-using OpenBLAS32
+#Pkg.add("OpenBLAS32")
+#using OpenBLAS32
 
 
 
