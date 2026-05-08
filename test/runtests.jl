@@ -5,13 +5,11 @@ using CompilerSupportLibraries_jll, MPIPreferences
             
 export mpirun, deactivate_multithreading, run_petsc_ex
 
-# ensure that we use the correct version of the package 
-Pkg.add(name="SuiteSparse32_jll", version="7.8.3")
-using SuiteSparse32_jll
-
+# ensure that we use the correct version of the package
 Pkg.add(url="https://github.com/boriskaus/PETSc_jll.jl")
-#Pkg.add("PETSc_jll")
-using PETSc_jll
+Pkg.add(name="SuiteSparse32_jll", version="7.8.3")         # pin matches PETSc_jll compat
+
+using PETSc_jll, SuiteSparse32_jll
 
 #Pkg.add("OpenBLAS32")
 #using OpenBLAS32
@@ -54,6 +52,21 @@ function deactivate_multithreading(cmd::Cmd)
 
     return cmd
 end
+
+# On macOS, Julia's system libumfpack uses ILP64 BLAS (dgemm_64_) while PETSc requires
+# LP64 (dgemm_). Prepending SuiteSparse32_jll's lib dir to the dynamic library search
+# path ensures the correct LP64 libumfpack is loaded instead of Julia's system version.
+# LBT_DEFAULT_LIBS is required on all platforms: libblastrampoline has no backing BLAS
+# in a subprocess, so we point it to OpenBLAS32 (LP64/32-bit int), matching PETSc.
+function add_suitesparse_env(cmd::Cmd)
+    openblas32_lib = joinpath(
+        only(filter(p -> isfile(joinpath(p, "libopenblas.$shlib_ext")), PETSc_jll.LIBPATH_list)),
+        "libopenblas.$shlib_ext")
+    addenv(cmd,
+        LIBPATH_env        => "$(SuiteSparse32_jll.LIBPATH_list[end]):$(PETSc_jll.LIBPATH[])",
+        "LBT_DEFAULT_LIBS" => openblas32_lib)
+end
+
 
 # Shamelessly stolen from the tests of LBT 
 if Sys.iswindows()
@@ -110,6 +123,7 @@ function add_LBT_flags(cmd::Cmd)
         # adding the environmental variables on windows seems to cause a crash
         cmd = addenv(cmd, env)
     end
+
     return cmd
 end
 
@@ -141,9 +155,8 @@ function run_petsc_ex(args::Cmd=``, cores::Int64=1, ex="ex4", ; wait=true, deact
             cmd = deactivate_multithreading(cmd)
         end
         
-        # add stuff related to LBT on systems that support it
-        cmd = add_LBT_flags(cmd)
-        
+        cmd = add_suitesparse_env(cmd)
+
         r = run(cmd, wait=wait);
     else
         # create command-line object
@@ -165,8 +178,7 @@ function run_petsc_ex(args::Cmd=``, cores::Int64=1, ex="ex4", ; wait=true, deact
             cmd = deactivate_multithreading(cmd)
         end
 
-        # add stuff related to LBT
-        cmd = add_LBT_flags(cmd)
+        cmd = add_suitesparse_env(cmd)
 
         # Run example in parallel
         r = run(cmd, wait=wait);
