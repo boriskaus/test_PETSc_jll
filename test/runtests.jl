@@ -12,10 +12,8 @@ Pkg.add(name="SuiteSparse32_jll", version="7.8.3")         # pin matches PETSc_j
 
 using PETSc_jll, SuiteSparse32_jll
 
-
 #Pkg.add("OpenBLAS32")
 #using OpenBLAS32
-
 
 
 # Show the host platform (debug info)
