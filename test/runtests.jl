@@ -6,10 +6,12 @@ using CompilerSupportLibraries_jll, MPIPreferences
 export mpirun, deactivate_multithreading, run_petsc_ex
 
 # ensure that we use the correct version of the package
-Pkg.add(url="https://github.com/boriskaus/PETSc_jll.jl")
+#Pkg.add(url="https://github.com/boriskaus/PETSc_jll.jl")
+Pkg.add(url="https://github.com/boriskaus/PETSc_jll1.jl")
 Pkg.add(name="SuiteSparse32_jll", version="7.8.3")         # pin matches PETSc_jll compat
 
 using PETSc_jll, SuiteSparse32_jll
+
 
 #Pkg.add("OpenBLAS32")
 #using OpenBLAS32
