@@ -279,6 +279,25 @@ end
             @test r.exitcode == 0
         end
     end
+
+    # Regression test for the parallel-MUMPS / ScaLAPACK factorization crash.
+    #
+    # MUMPS uses ScaLAPACK (libscalapack32) for the root-node LU factorization
+    # in `dmumps_facto_root_` -> `pdgetrf_`. With a SCALAPACK32_jll build whose
+    # MPI ABI does not match the MPI actually loaded at runtime (e.g. PETSc_jll
+    # 3.22.1 pinning SCALAPACK32_jll 2.2.3 (libmpi.12 soname 18.x) while the
+    # process loads MPICH_jll 5.0.1 (soname 19.x)), `pdgetrf_`/`pdamax_` SEGV
+    # with a null-pointer deref on >=2 ranks. Single-rank MUMPS and superlu_dist
+    # (which does not go through ScaLAPACK) are unaffected, so a plain parallel
+    # `ex19 -pc_type lu -pc_factor_mat_solver_type mumps` is the cleanest probe.
+    # If this fails, suspect a SCALAPACK32_jll <-> MPI ABI mismatch in PETSc_jll.
+    @testset "ex19 2: mumps parallel LU (ScaLAPACK regression)" begin
+        if test_mumps & is_parallel
+            args = `-snes_type ksponly -ksp_type preonly -pc_type lu -pc_factor_mat_solver_type mumps -da_grid_x 16 -da_grid_y 16`;
+            r = run_petsc_ex(args, 2, "ex19")
+            @test r.exitcode == 0
+        end
+    end
     
     @testset "ex42 3: redundant lu" begin
         if  is_parallel
