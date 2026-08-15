@@ -1,16 +1,14 @@
 using Test, Pkg, Base.Sys
 
 # BLAS library used here:
-using CompilerSupportLibraries_jll, MPIPreferences
+using CompilerSupportLibraries_jll, MPIPreferences, OpenBLAS32_jll
             
 export mpirun, deactivate_multithreading, run_petsc_ex
 
 # ensure that we use the correct version of the package
 #Pkg.add(url="https://github.com/boriskaus/PETSc_jll.jl")
 Pkg.add(url="https://github.com/boriskaus/PETSc_jll1.jl")
-#Pkg.add(name="SuiteSparse32_jll", version="7.8.3")         # pin matches PETSc_jll compat
-
-using PETSc_jll #, SuiteSparse32_jll
+using PETSc_jll
 
 # Show the host platform (debug info)
 @show Base.BinaryPlatforms.HostPlatform()
@@ -49,21 +47,6 @@ function deactivate_multithreading(cmd::Cmd)
     return cmd
 end
 
-# On macOS, Julia's system libumfpack uses ILP64 BLAS (dgemm_64_) while PETSc requires
-# LP64 (dgemm_). Prepending SuiteSparse32_jll's lib dir to the dynamic library search
-# path ensures the correct LP64 libumfpack is loaded instead of Julia's system version.
-# LBT_DEFAULT_LIBS is required on all platforms: libblastrampoline has no backing BLAS
-# in a subprocess, so we point it to OpenBLAS32 (LP64/32-bit int), matching PETSc.
-function add_suitesparse_env(cmd::Cmd)
-    openblas32_lib = joinpath(
-        only(filter(p -> isfile(joinpath(p, "libopenblas.$shlib_ext")), PETSc_jll.LIBPATH_list)),
-        "libopenblas.$shlib_ext")
-    addenv(cmd,
-        LIBPATH_env        => "$(SuiteSparse32_jll.LIBPATH_list[end]):$(PETSc_jll.LIBPATH[])",
-        "LBT_DEFAULT_LIBS" => openblas32_lib)
-end
-
-
 # Shamelessly stolen from the tests of LBT 
 if Sys.iswindows()
     LIBPATH_env = "PATH"
@@ -95,24 +78,38 @@ else
 end
 
 function append_libpath(paths::Vector{<:AbstractString}, ENV::Vector{<:AbstractString})
-    
-    return join(vcat(paths..., ENV[first(findall(contains.(ENV,"$LIBPATH_env")))]), pathsep)
+    # ENV entries are raw "KEY=VALUE" strings; strip the "LIBPATH_env=" prefix
+    # so we don't embed a literal "LD_LIBRARY_PATH=..." inside the new value.
+    idx = findfirst(startswith("$LIBPATH_env="), ENV)
+    existing = idx === nothing ? LIBPATH_default : split(ENV[idx], '='; limit=2)[2]
+
+    return join(vcat(paths..., existing), pathsep)
 end
 
 
 function add_LBT_flags(cmd::Cmd)
-    # using LBT requires to set the following environment variables
-    #libdirs = unique(vcat(OpenBLAS32_jll.LIBPATH_list..., CompilerSupportLibraries_jll.LIBPATH_list...))
+    # PETSc itself calls BLAS through libblastrampoline (LBT) using the
+    # ILP64 (`_64_`) symbols, while MUMPS_jll/SuperLU_DIST_jll (linked in as
+    # separate shared libraries) make their own internal, plain LP64 BLAS
+    # calls (dgemm_, idamax_, ...) also routed through LBT. Neither slot has
+    # a backing library registered by default in a bare subprocess (unlike
+    # inside a Julia process, where the stdlib OpenBLAS/OpenBLAS32_jll
+    # auto-register), so unregistered calls either segfault (ILP64, e.g.
+    # BLASdot()/VecNorm_Seq) or hard-error with "no BLAS/LAPACK library
+    # loaded" (LP64, inside MUMPS/SuperLU_DIST). Point LBT_DEFAULT_LIBS at
+    # both Julia's bundled ILP64 OpenBLAS (libopenblas64_) and
+    # OpenBLAS32_jll's LP64 library; LBT auto-detects each one's word size.
+    # See https://github.com/JuliaPackaging/Yggdrasil/pull/13691 and #13696.
     libdirs = unique(vcat(CompilerSupportLibraries_jll.LIBPATH_list...))
-    
-    #backing_libs = OpenBLAS32_jll.libopenblas_path
-    
+
+    ilp64_lib = joinpath(Sys.BINDIR, "..", "lib", "julia", "libopenblas64_.$shlib_ext")
+    lp64_lib = OpenBLAS32_jll.libopenblas_path
+    backing_libs = join((ilp64_lib, lp64_lib), ";")
+
     env = Dict(
         # We need to tell it how to find CSL at run-time
         LIBPATH_env => append_libpath(libdirs, cmd.env),
-        #"LBT_DEFAULT_LIBS" => backing_libs,
-        #"LBT_STRICT" => 1,
-        #"LBT_VERBOSE" => 0,
+        "LBT_DEFAULT_LIBS" => backing_libs,
     )
 
     if !Sys.iswindows()
@@ -150,31 +147,29 @@ function run_petsc_ex(args::Cmd=``, cores::Int64=1, ex="ex4", ; wait=true, deact
         if deactivate_multithreads
             cmd = deactivate_multithreading(cmd)
         end
-        
-        cmd = add_suitesparse_env(cmd)
+        cmd = add_LBT_flags(cmd)
 
         r = run(cmd, wait=wait);
     else
         # create command-line object
+        # (use .exec[1] to get a plain executable path: interpolating two
+        # env-carrying Cmds, e.g. mpirun and PETSc_jll.ex19_int64_deb(), in
+        # the same backtick literal is rejected by Julia's Cmd construction)
         if ex=="ex4"
-            cmd = `$(mpirun) -n $cores $(PETSc_jll.ex4_path) $args`
-            #cmd = `$(mpirun) -n $cores $(PETSc_jll.ex4_int64_deb_path) $args`
+            cmd = `$(mpirun) -n $cores $(PETSc_jll.ex4().exec[1]) $args`
         elseif ex=="ex42"
-            cmd = `$(mpirun) -n $cores $(PETSc_jll.ex42_path) $args`
+            cmd = `$(mpirun) -n $cores $(PETSc_jll.ex42().exec[1]) $args`
         elseif ex=="ex19"
-            cmd = `$(mpirun) -n $cores $(PETSc_jll.ex19_int64_deb_path) $args`
-            #cmd = `$(mpirun) -n $cores $(PETSc_jll.ex19_path) $args`
+            cmd = `$(mpirun) -n $cores $(PETSc_jll.ex19_int64_deb().exec[1]) $args`
         elseif ex=="ex19_32"
-            cmd = `$(PETSc_jll.ex19_int32())  $args`
-            #cmd = `$(PETSc_jll.ex19())  $args`            
+            cmd = `$(mpirun) -n $cores $(PETSc_jll.ex19_int32().exec[1]) $args`
         else
             error("unknown example")
         end
         if deactivate_multithreads
             cmd = deactivate_multithreading(cmd)
         end
-
-        cmd = add_suitesparse_env(cmd)
+        cmd = add_LBT_flags(cmd)
 
         # Run example in parallel
         r = run(cmd, wait=wait);
