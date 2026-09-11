@@ -77,6 +77,9 @@ probe("ICNTL(16)=1 single OpenMP thread",        "ex19", 2, `$base -mat_mumps_ic
 probe("-mat_mumps_use_omp_threads 1",            "ex19", 2, `$base -mat_mumps_use_omp_threads 1`)
 probe("Int32 build, control",                    "ex19_32", 2, base)
 probe("Int32 build, ICNTL(28)=2 ICNTL(29)=2",    "ex19_32", 2, `$base -mat_mumps_icntl_28 2 -mat_mumps_icntl_29 2`)
+probe("ICNTL(21)=0 centralized solution (PETSc may override)", "ex19", 2, `$base -mat_mumps_icntl_21 0`)
+probe("ICNTL(28)=1 + ICNTL(20)=0 (sequential analysis, centralized RHS)", "ex19", 2, `$base -mat_mumps_icntl_28 1 -mat_mumps_icntl_20 0`)
+probe("ICNTL(28)=2 + ICNTL(20)=10 (parallel analysis, distributed RHS)",  "ex19", 2, `$base -mat_mumps_icntl_28 2 -mat_mumps_icntl_20 10`)
 println("\n=== same case, environment probes ===")
 probe("MallocScribble+GuardEdges (macOS malloc debugging)", "ex19", 2, base;
       env=Dict("MallocScribble"=>"1", "MallocGuardEdges"=>"1", "MallocPreScribble"=>"1", "MallocErrorAbort"=>"1"))
@@ -86,6 +89,45 @@ probe("MPICH async progress off",                          "ex19", 2, base; env=
 probe("HYDRA_LAUNCHER=fork? (mpiexec local)",              "ex19", 2, base; env=Dict("HYDRA_LAUNCHER"=>"fork"))
 println("\n=== verbose failing run (MUMPS ICNTL(4)=3, PETSc -malloc_debug) ===")
 probe("verbose", "ex19", 2, `$base -mat_mumps_icntl_4 3 -malloc_debug`; show=true)
+
+if Sys.isapple()
+    println("\n=== native backtrace of the failing case ===")
+    # (a) let the process die on SIGBUS/SIGSEGV instead of PETSc's handler, so macOS writes a crash report
+    reports = expanduser("~/Library/Logs/DiagnosticReports")
+    before = Set(readdir(reports))
+    probe("control with -no_signal_handler (crash report)", "ex19", 2, `$base -no_signal_handler`)
+    sleep(5)
+    newrep = sort(filter(f -> !(f in before) && endswith(f, ".ips"), readdir(reports)))
+    for f in newrep
+        println("\n--- crash report ", f, " ---")
+        txt = read(joinpath(reports, f), String)
+        body = txt[findfirst('\n', txt)+1:end]           # line 1 is a JSON header, the rest the report JSON
+        try
+            import JSON
+        catch
+            Pkg.add("JSON"); import JSON
+        end
+        d = JSON.parse(body)
+        imgs = get(d, "usedImages", [])
+        println("exception: ", get(d, "exception", ""))
+        for th in get(d, "threads", [])
+            get(th, "triggered", false) || continue
+            for (k, fr) in enumerate(get(th, "frames", []))
+                img = imgs[fr["imageIndex"]+1]
+                println(rpad(k, 3), rpad(get(img, "name", "?"), 34), get(fr, "symbol", "?"), " + ", get(fr, "symbolLocation", "?"))
+                k > 25 && break
+            end
+        end
+    end
+    isempty(newrep) && println("(no new crash report found in $reports; check System Settings > Privacy > Analytics or run the lldb variant below)")
+    # (b) lldb batch mode, one debugger per rank
+    lldb = Sys.which("lldb")
+    if lldb !== nothing
+        println("\n--- lldb batch backtrace ---")
+        cmd = addenv(`$(mpiexec) -n 2 $lldb --batch -o run -k bt -k quit -- $(exe("ex19")) $base -no_signal_handler`, baseenv)
+        run(ignorestatus(pipeline(cmd; stdout=stdout, stderr=stdout)))
+    end
+end
 
 println("\n=== ex4 (Int64), SuperLU_DIST, 13x8 staggered grid ===")
 sbase = `-dim 2 -coefficients layers -nondimensional 0 -stag_grid_x 13 -stag_grid_y 8 -pc_type lu -pc_factor_mat_solver_type superlu_dist -ksp_converged_reason`
