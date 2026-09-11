@@ -43,12 +43,30 @@ function probe(label, ex, n, args; env=Dict{String,String}(), show=false)
     lines = split(txt, '\n')
     err = findfirst(l -> occursin(r"PETSC ERROR: (Caught signal|[A-Z][a-z].*)|MUMPS error|INFOG?\(1\)|DIVERGED|Abort\(", l), lines)
     firsterr = err === nothing ? "" : strip(lines[err])
+    it = findfirst(l -> occursin(r"Number of SNES iterations|Linear solve (converged|did not)", l), lines)
+    it === nothing || (firsterr = string(strip(lines[it]), "  ", firsterr))
     println(rpad(label, 62), ok ? "PASS" : "FAIL", "  ", first(firsterr, 90))
     show && println(txt)
     return ok
 end
 
-base = `-snes_type ksponly -ksp_type preonly -pc_type lu -pc_factor_mat_solver_type mumps -da_grid_x 16 -da_grid_y 16`
+# -ksp/snes_error_if_not_converged: a MUMPS/ParMETIS failure inside the solver otherwise ends
+# with "Number of SNES iterations = 0" and exit code 0 (seen with the parallel-ordering cases on
+# macOS: "Internal error empty subgraph when calling distributed memory parallel ordering").
+conv = `-ksp_error_if_not_converged -snes_error_if_not_converged`
+base = `-snes_type ksponly -ksp_type preonly -pc_type lu -pc_factor_mat_solver_type mumps -da_grid_x 16 -da_grid_y 16 $conv`
+if Sys.isapple()
+    println("\n=== MPICH Fortran sentinel COMMON blocks (/MPIPRIV1/ = MPI_BOTTOM, MPI_IN_PLACE, MPI_STATUS_IGNORE) ===")
+    println("libmpifort must be the only *definition*; a dylib that *defines* _mpipriv1_ itself passes sentinels MPICH cannot recognize.")
+    M = PETSc_jll.MUMPS_jll
+    for lib in (M.libdmumpspar_path, M.libdmumpspar_metis64_path, joinpath(dirname(mpi.libmpi_path), "libmpifort.12.dylib"),
+                PETSc_jll.libpetsc_Float64_Real_Int64_path)
+        isfile(lib) || (println("  (missing) ", lib); continue)
+        out = read(pipeline(`nm -m $lib`, `grep -E "_mpipriv1_|_mpifcmb5_"`), String)
+        println("  ", basename(lib), ":"); foreach(l -> println("      ", strip(l)), split(strip(out), '\n'))
+    end
+end
+
 println("\n=== ex19 (Int64), 2 ranks, MUMPS LU, 16x16 grid: MUMPS settings ===")
 probe("control (fails on macOS CI)",            "ex19", 2, base)
 probe("1 rank (control, should pass)",          "ex19", 1, base)
@@ -80,6 +98,11 @@ probe("Int32 build, ICNTL(28)=2 ICNTL(29)=2",    "ex19_32", 2, `$base -mat_mumps
 probe("ICNTL(21)=0 centralized solution (PETSc may override)", "ex19", 2, `$base -mat_mumps_icntl_21 0`)
 probe("ICNTL(28)=1 + ICNTL(20)=0 (sequential analysis, centralized RHS)", "ex19", 2, `$base -mat_mumps_icntl_28 1 -mat_mumps_icntl_20 0`)
 probe("ICNTL(28)=2 + ICNTL(20)=10 (parallel analysis, distributed RHS)",  "ex19", 2, `$base -mat_mumps_icntl_28 2 -mat_mumps_icntl_20 10`)
+println("\n=== fieldsplit_mumps (the test that still failed with PETSC_OPTIONS=-mat_mumps_icntl_20 0) ===")
+fs = `-pc_type fieldsplit -pc_fieldsplit_block_size 4 -pc_fieldsplit_type SCHUR -pc_fieldsplit_0_fields 0,1,2 -pc_fieldsplit_1_fields 3 -fieldsplit_0_pc_type lu -fieldsplit_1_pc_type lu -fieldsplit_0_pc_factor_mat_solver_type mumps -fieldsplit_1_pc_factor_mat_solver_type mumps $conv`
+probe("fieldsplit_mumps control",                        "ex19", 2, fs)
+probe("fieldsplit_mumps, unprefixed -mat_mumps_icntl_20 0 (ignored)", "ex19", 2, `$fs -mat_mumps_icntl_20 0`)
+probe("fieldsplit_mumps, prefixed icntl_20 0 on both splits", "ex19", 2, `$fs -fieldsplit_0_mat_mumps_icntl_20 0 -fieldsplit_1_mat_mumps_icntl_20 0`)
 println("\n=== same case, environment probes ===")
 probe("MallocScribble+GuardEdges (macOS malloc debugging)", "ex19", 2, base;
       env=Dict("MallocScribble"=>"1", "MallocGuardEdges"=>"1", "MallocPreScribble"=>"1", "MallocErrorAbort"=>"1"))
@@ -125,12 +148,12 @@ if Sys.isapple()
     if lldb !== nothing
         println("\n--- lldb batch backtrace ---")
         cmd = addenv(`$(mpiexec) -n 2 $lldb --batch -o run -k bt -k quit -- $(exe("ex19")) $base -no_signal_handler`, baseenv)
-        run(ignorestatus(pipeline(cmd; stdout=stdout, stderr=stdout)))
+        run(pipeline(ignorestatus(cmd); stdout=stdout, stderr=stdout))
     end
 end
 
 println("\n=== ex4 (Int64), SuperLU_DIST, 13x8 staggered grid ===")
-sbase = `-dim 2 -coefficients layers -nondimensional 0 -stag_grid_x 13 -stag_grid_y 8 -pc_type lu -pc_factor_mat_solver_type superlu_dist -ksp_converged_reason`
+sbase = `-dim 2 -coefficients layers -nondimensional 0 -stag_grid_x 13 -stag_grid_y 8 -pc_type lu -pc_factor_mat_solver_type superlu_dist -ksp_converged_reason -ksp_error_if_not_converged`
 probe("4 ranks control (fails on macOS CI: DIVERGED_ITS)", "ex4", 4, sbase)
 probe("2 ranks",                                          "ex4", 2, sbase)
 probe("1 rank",                                           "ex4", 1, sbase)
