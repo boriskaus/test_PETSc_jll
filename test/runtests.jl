@@ -237,12 +237,13 @@ test_superlu_dist_int64 = true
 if iswindows()
     # PETSc_jll >= 3.25.4 is built with MS-MPI on Windows again (the load-time pseudo-relocation
     # abort came from PETSc's Fortran bindings, which are now disabled there), so the parallel
-    # runs are on.  Of the external packages, MUMPS (MUMPS_jll's MS-MPI build, stock flavour)
-    # and SuiteSparse are linked on Windows; SuperLU_DIST and HYPRE are not.
+    # runs are on, and so are the external packages: MUMPS (MUMPS_jll's MS-MPI build, stock
+    # flavour), SuperLU_DIST (SuperLU_DIST_jll, built without METIS/ParMETIS on Windows), hypre
+    # and SuiteSparse.
     is_parallel = true;         # activate parallel tests (mpiexec from MicrosoftMPI_jll)
     mpi_single_core = true;     # performs a single-core run without calling MPI
     test_suitesparse = true
-    test_superlu_dist = false
+    test_superlu_dist = true
     test_mumps = true
 else
     is_parallel = true;         # activate parallel tests
