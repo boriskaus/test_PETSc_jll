@@ -226,8 +226,11 @@ test_mumps = true
 test_superlu_dist_int64 = true
 
 if iswindows()
-    is_parallel = false;        # activate parallel tests
-    mpi_single_core = false;    # performs a single-core run without calling MPI
+    # PETSc_jll >= 3.25.4 is built with MS-MPI on Windows again (the load-time pseudo-relocation
+    # abort came from PETSc's Fortran bindings, which are now disabled there), so the parallel
+    # runs are on.  The external packages are still not built on Windows.
+    is_parallel = true;         # activate parallel tests (mpiexec from MicrosoftMPI_jll)
+    mpi_single_core = true;     # performs a single-core run without calling MPI
     test_suitesparse = false
     test_superlu_dist = false
     test_mumps = false
