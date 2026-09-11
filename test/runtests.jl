@@ -135,7 +135,9 @@ function add_LBT_flags(cmd::Cmd)
     # See https://github.com/JuliaPackaging/Yggdrasil/pull/13691 and #13696.
     libdirs = unique(vcat(CompilerSupportLibraries_jll.LIBPATH_list...))
 
-    ilp64_lib = joinpath(Sys.BINDIR, "..", "lib", "julia", "libopenblas64_.$shlib_ext")
+    # Julia's own ILP64 OpenBLAS: lib/julia/ on Linux and macOS, next to julia.exe on Windows.
+    ilp64_lib = Sys.iswindows() ? joinpath(Sys.BINDIR, "libopenblas64_.dll") :
+                                  joinpath(Sys.BINDIR, "..", "lib", "julia", "libopenblas64_.$shlib_ext")
     lp64_lib = OpenBLAS32_jll.libopenblas_path
     backing_libs = join((ilp64_lib, lp64_lib), ";")
 
@@ -146,13 +148,13 @@ function add_LBT_flags(cmd::Cmd)
     )
 
     if Sys.iswindows()
-        # On Windows PETSc_jll links OpenBLAS_jll's libopenblas64_.dll directly, so only the
-        # LP64 slot behind MUMPS_jll's libblastrampoline-5.dll needs a backing library (Julia's
-        # own libopenblas64_ also lives in bin/ there, not lib/julia/).  PATH is left alone:
-        # mpirun already carries PETSc_jll.LIBPATH, which holds every dependency's bin
-        # directory, CompilerSupportLibraries included; adding the variables here used to
-        # crash the child processes on Windows.
-        cmd = addenv(cmd, "LBT_DEFAULT_LIBS" => lp64_lib)
+        # On Windows PETSc_jll links OpenBLAS_jll's libopenblas64_.dll directly, but Julia's
+        # SuiteSparse_jll (umfpack/cholmod call dgemv_64_ ...) and MUMPS_jll/SCALAPACK32_jll
+        # (LP64) go through libblastrampoline-5.dll, so both slots need a backing library
+        # here as well.  PATH is left alone: mpirun already carries PETSc_jll.LIBPATH, which
+        # holds every dependency's bin directory, CompilerSupportLibraries included; adding
+        # the variables here used to crash the child processes on Windows.
+        cmd = addenv(cmd, "LBT_DEFAULT_LIBS" => backing_libs)
     else
         cmd = addenv(cmd, env)
     end
