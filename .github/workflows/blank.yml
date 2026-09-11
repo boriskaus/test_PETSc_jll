@@ -13,26 +13,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        version:
-          - '1.12'   # minimum: PETSc_jll links the ILP64 SuiteSparse_jll of Julia's stdlib
-          - '1'      # latest stable (1.13 as of Sep 2026)
-          - 'nightly'
-        os:
-          - ubuntu-latest
-          - macOS-latest
-          - macos-14
-          - windows-latest
-        arch:
-          - x64
+        # Lean matrix (2026-09): one native runner per tarball we ship, Julia at PETSc_jll's floor
+        # (1.12) and at the current release ('1').  Rosetta (x64 Julia on Apple-silicon runners) and
+        # nightly were dropped: they only re-test the same tarballs through emulation / an unreleased
+        # Julia and are the slowest to schedule.
         include:
-          # Diagnostics for the parallel MUMPS/SuperLU_DIST failures seen on the x64 (Rosetta)
-          # macOS runners: native x86_64 (no Rosetta) and native arm64 (the aarch64 tarball).
-          - version: '1'
-            os: macos-15-intel
-            arch: x64
-          - version: '1'
-            os: macos-14
-            arch: aarch64
+          - { version: '1.12', os: ubuntu-latest,  arch: x64 }
+          - { version: '1',    os: ubuntu-latest,  arch: x64 }
+          - { version: '1.12', os: windows-latest, arch: x64 }
+          - { version: '1',    os: windows-latest, arch: x64 }
+          - { version: '1',    os: macos-15-intel, arch: x64 }      # native x86_64-apple-darwin
+          - { version: '1',    os: macos-14,       arch: aarch64 }  # native aarch64-apple-darwin
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v1
