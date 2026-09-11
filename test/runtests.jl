@@ -145,8 +145,15 @@ function add_LBT_flags(cmd::Cmd)
         "LBT_DEFAULT_LIBS" => backing_libs,
     )
 
-    if !Sys.iswindows()
-        # adding the environmental variables on windows seems to cause a crash
+    if Sys.iswindows()
+        # On Windows PETSc_jll links OpenBLAS_jll's libopenblas64_.dll directly, so only the
+        # LP64 slot behind MUMPS_jll's libblastrampoline-5.dll needs a backing library (Julia's
+        # own libopenblas64_ also lives in bin/ there, not lib/julia/).  PATH is left alone:
+        # mpirun already carries PETSc_jll.LIBPATH, which holds every dependency's bin
+        # directory, CompilerSupportLibraries included; adding the variables here used to
+        # crash the child processes on Windows.
+        cmd = addenv(cmd, "LBT_DEFAULT_LIBS" => lp64_lib)
+    else
         cmd = addenv(cmd, env)
     end
 
@@ -228,12 +235,13 @@ test_superlu_dist_int64 = true
 if iswindows()
     # PETSc_jll >= 3.25.4 is built with MS-MPI on Windows again (the load-time pseudo-relocation
     # abort came from PETSc's Fortran bindings, which are now disabled there), so the parallel
-    # runs are on.  The external packages are still not built on Windows.
+    # runs are on.  Of the external packages, MUMPS (MUMPS_jll's MS-MPI build, stock flavour)
+    # and SuiteSparse are linked on Windows; SuperLU_DIST and HYPRE are not.
     is_parallel = true;         # activate parallel tests (mpiexec from MicrosoftMPI_jll)
     mpi_single_core = true;     # performs a single-core run without calling MPI
-    test_suitesparse = false
+    test_suitesparse = true
     test_superlu_dist = false
-    test_mumps = false
+    test_mumps = true
 else
     is_parallel = true;         # activate parallel tests
     mpi_single_core = true;     
