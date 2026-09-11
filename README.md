@@ -69,6 +69,27 @@ Some things to keep in mind while doing this:
 - Using a powerful machine is helpful.
 
 
+#### Testing a locally built `PETSc_jll` without uploading it
+Uploading to GitHub and waiting for CI is only worth it once the linux build works locally. BinaryBuilder can deploy the generated JLL package to a local directory instead (`--deploy=local`), with an `Artifacts.toml` that points at the tarball in `products/` through a `file://` URL. In the Yggdrasil `P/PETSc` directory:
+```bash
+./run_build_local.sh x86_64-linux-gnu-libgfortran5-mpi+mpich   # writes ./jll_local/PETSc_jll
+```
+(`run_build_local.sh` is a small wrapper around `julia build_tarballs.jl --verbose --deploy=local <triplet>` that also redirects BinaryBuilder's deploy directory to `./jll_local`, so that `~/.julia/dev/PETSc_jll` is left alone.)
+
+Then run the tests of this package against that local JLL by pointing `PETSC_JLL_LOCAL_PATH` at it; `test/runtests.jl` does `Pkg.develop(path=...)` instead of `Pkg.add(url=...)` in that case. Develop it in the project environment first as well, otherwise `Pkg.test()` tries to instantiate the (possibly stale) `PETSc_jll` recorded in `Manifest.toml` before `runtests.jl` even starts:
+```bash
+cd ~/.julia/dev/test_PETSc_jll
+export PETSC_JLL_LOCAL_PATH=/path/to/Yggdrasil/P/PETSc/jll_local/PETSc_jll
+julia --project=. -e 'using Pkg; Pkg.develop(path=ENV["PETSC_JLL_LOCAL_PATH"]); Pkg.test()'
+```
+Without the environment variable the tests use the `PETSc_jll` that was deployed to GitHub, which is what CI does.
+
+If the local `PETSc_jll` was built against a dependency JLL that is not registered yet (e.g. a MUMPS_jll built from a Yggdrasil branch, deployed the same way with `--deploy=local`), develop that JLL in the project environment as well, otherwise `Pkg.test()` resolves the registered version, whose libraries do not match what `libpetsc` links:
+```bash
+julia --project=. -e 'using Pkg; Pkg.develop(path="/path/to/Yggdrasil/M/MUMPS/MUMPS@5/jll_local/MUMPS_jll")'
+```
+(This is why `MUMPS_jll` is a direct dependency in `Project.toml`. `test/runtests.jl` does the same when `MUMPS_JLL_LOCAL_PATH` is set; in CI it installs MUMPS_jll from https://github.com/boriskaus/MUMPS_jll.jl, the local multi-platform deploy of Yggdrasil #14746, until MUMPS_jll 5.9.3 is registered.)
+
 ### 3. Step-wise development of PETSc
 
 At the time of writing (6.1.2024) I was running into the issue that `PETSc_jll` with version 3.20.0 wouldn't even precompile anymore on windows, as can be seen here for [julia 1.9 and windows](https://github.com/boriskaus/test_PETSc_jll/actions/runs/7420510714/job/20192043786). At the same time, a simular testing framework was setup for [SuperLU_DIST_jll](https://github.com/boriskaus/test_SuperLU_DIST_jll) which worked [fine](https://github.com/boriskaus/test_SuperLU_DIST_jll/actions/runs/7422000918/job/20196454722) on windows/mac/linux for julia 1.9-1.11 in serial and parallel for version 8.2.1 which was [merged](https://github.com/JuliaPackaging/Yggdrasil/pull/7890) accordingly. Therefore it is clearly not an issue of the MicrosoftMPI being used. 

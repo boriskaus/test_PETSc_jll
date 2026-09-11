@@ -5,9 +5,32 @@ using CompilerSupportLibraries_jll, MPIPreferences, OpenBLAS32_jll
             
 export mpirun, deactivate_multithreading, run_petsc_ex
 
-# ensure that we use the correct version of the package
-#Pkg.add(url="https://github.com/boriskaus/PETSc_jll.jl")
-Pkg.add(url="https://github.com/boriskaus/PETSc_jll1.jl")
+# ensure that we use the correct version of the package.
+#
+# By default the PETSc_jll that was deployed to GitHub is used (this is what CI
+# tests).  To test a PETSc_jll that was built locally with BinaryBuilder
+# (`julia build_tarballs.jl --deploy=local <triplet>`), point the environment
+# variable PETSC_JLL_LOCAL_PATH to the generated JLL directory, e.g.
+#   PETSC_JLL_LOCAL_PATH=<jll dir> julia --project=. -e 'using Pkg; Pkg.develop(path=ENV["PETSC_JLL_LOCAL_PATH"]); Pkg.test()'
+# PETSc_jll >= 3.25.4 links MUMPS_jll 5.9.3 (the `_metis64` flavour, Yggdrasil #14746).  Until that
+# version is registered, the PETSc_jll deployed to GitHub cannot pin it, so install MUMPS_jll from
+# the matching GitHub deploy (or, for local testing, point MUMPS_JLL_LOCAL_PATH at a locally
+# built one) before PETSc_jll is resolved.
+if haskey(ENV, "MUMPS_JLL_LOCAL_PATH")
+    local_mumps = expanduser(ENV["MUMPS_JLL_LOCAL_PATH"])
+    println("Using locally built MUMPS_jll from $local_mumps")
+    Pkg.develop(path=local_mumps)
+elseif !haskey(ENV, "PETSC_JLL_LOCAL_PATH")
+    Pkg.add(url="https://github.com/boriskaus/MUMPS_jll.jl")
+end
+if haskey(ENV, "PETSC_JLL_LOCAL_PATH")
+    local_jll = expanduser(ENV["PETSC_JLL_LOCAL_PATH"])
+    println("Using locally built PETSc_jll from $local_jll")
+    Pkg.develop(path=local_jll)
+else
+    #Pkg.add(url="https://github.com/boriskaus/PETSc_jll.jl")
+    Pkg.add(url="https://github.com/boriskaus/PETSc_jll1.jl")
+end
 using PETSc_jll
 
 # Show the host platform (debug info)
@@ -183,6 +206,15 @@ test_suitesparse = true
 test_superlu_dist = true
 test_mumps = true
 
+# SuperLU_DIST in the Int64 PetscInt variants (ex4/ex42 and the default ex19
+# executable are Int64 builds).  This needs PETSc_jll >= 3.25.4 built against
+# MUMPS_jll's `_metis64` flavour: SuperLU_DIST_jll's Int64 library uses the
+# 64-bit-index METIS/ParMETIS, which exports the same symbol names as the
+# 32-bit METIS the stock MUMPS libraries link, and the two cannot coexist in
+# one process (see https://github.com/JuliaPackaging/Yggdrasil/pull/13691).
+# Set to false to test a PETSc_jll whose Int64 variants have no SuperLU_DIST.
+test_superlu_dist_int64 = true
+
 if iswindows()
     is_parallel = false;        # activate parallel tests
     mpi_single_core = false;    # performs a single-core run without calling MPI
@@ -231,7 +263,7 @@ end
 
             # runex19_superlu_dist
             @testset "$ex19_case 2: fieldsplit_superlu_dist" begin
-                if test_superlu_dist & is_parallel
+                if test_superlu_dist & is_parallel & (ex19_case == "ex19_32" || test_superlu_dist_int64)
                     #args = `-da_grid_x 20 -da_grid_y 20 -pc_type lu -pc_factor_mat_solver_type superlu_dist`;
                     args = `-pc_type fieldsplit -pc_fieldsplit_block_size 4 -pc_fieldsplit_type SCHUR -pc_fieldsplit_0_fields 0,1,2 -pc_fieldsplit_1_fields 3 -fieldsplit_0_pc_type lu -fieldsplit_1_pc_type lu -snes_monitor_short -ksp_monitor_short  -fieldsplit_0_pc_factor_mat_solver_type superlu_dist -fieldsplit_1_pc_factor_mat_solver_type superlu_dist`;
                     
@@ -247,6 +279,43 @@ end
                     r = run_petsc_ex(args, 1, "ex19", mpi_single_core=mpi_single_core)
                     @test r.exitcode == 0
                 end
+            end
+
+            # Regression tests for the METIS integer-width clash: force MUMPS to
+            # actually call METIS (ICNTL(7)=5) and ParMETIS (ICNTL(28)=2,
+            # ICNTL(29)=2).  With a wrong-width METIS bound into the process
+            # these crash (SEGV) or fail with INFO(1)=-50, while the default
+            # automatic ordering of a small problem may never touch METIS.
+            @testset "$ex19_case 1: mumps METIS ordering" begin
+                if test_mumps
+                    args = `-da_refine 3 -pc_type lu -pc_factor_mat_solver_type mumps -mat_mumps_icntl_7 5`;
+                    r = run_petsc_ex(args, 1, ex19_case, mpi_single_core=mpi_single_core)
+                    @test r.exitcode == 0
+                end
+            end
+            @testset "$ex19_case 2: mumps ParMETIS ordering" begin
+                if test_mumps & is_parallel
+                    args = `-da_refine 3 -pc_type lu -pc_factor_mat_solver_type mumps -mat_mumps_icntl_28 2 -mat_mumps_icntl_29 2`;
+                    r = run_petsc_ex(args, 2, ex19_case)
+                    @test r.exitcode == 0
+                end
+            end
+        end
+
+        # SuperLU_DIST tests with the Int32 executable (the only PetscInt width
+        # with SuperLU_DIST support, see test_superlu_dist_int64 above).
+        @testset "ex19_32 2: superlu_dist LU" begin
+            if test_superlu_dist & is_parallel
+                args = `-da_refine 3 -snes_type ksponly -ksp_type preonly -pc_type lu -pc_factor_mat_solver_type superlu_dist`;
+                r = run_petsc_ex(args, 2, "ex19_32")
+                @test r.exitcode == 0
+            end
+        end
+        @testset "ex19_32 4: superlu_dist LU" begin
+            if test_superlu_dist & is_parallel
+                args = `-da_refine 3 -snes_type ksponly -ksp_type preonly -pc_type lu -pc_factor_mat_solver_type superlu_dist`;
+                r = run_petsc_ex(args, 4, "ex19_32")
+                @test r.exitcode == 0
             end
         end
         
@@ -268,7 +337,7 @@ end
     end
 
     @testset "ex42 2: superlu_dist" begin
-        if test_superlu_dist & is_parallel
+        if test_superlu_dist & is_parallel & test_superlu_dist_int64
             args = `-stokes_ksp_monitor_short -stokes_ksp_converged_reason -stokes_pc_type lu -stokes_pc_factor_mat_solver_type superlu_dist `;
             r = run_petsc_ex(args, 2, "ex42")
             @test r.exitcode == 0
@@ -375,7 +444,7 @@ end
     end
 
     @testset "ex4  4: direct superlu_dist" begin
-        if test_superlu_dist & is_parallel
+        if test_superlu_dist & is_parallel & test_superlu_dist_int64
             args  = `-dim 2 -coefficients layers -nondimensional 0 -stag_grid_x 13 -stag_grid_y 8 -pc_type lu -pc_factor_mat_solver_type superlu_dist -ksp_converged_reason`;
             cores = 4
             r = run_petsc_ex(args, cores, "ex4")
@@ -456,7 +525,7 @@ end
 
     
     @testset "ex4  2: 3d_nondim_mono_mg_lamemstyle superlu_dist" begin
-        if test_superlu_dist & is_parallel
+        if test_superlu_dist & is_parallel & test_superlu_dist_int64
             args = `-dim 3 -coefficients layers -nondimensional -s 16 -custom_pc_mat -pc_type mg -pc_mg_galerkin -pc_mg_levels 2 -mg_levels_ksp_type richardson -mg_levels_pc_type jacobi -mg_levels_ksp_richardson_scale 0.5 -mg_levels_ksp_max_it 20 -mg_coarse_pc_type lu -mg_coarse_pc_factor_mat_solver_type superlu_dist -ksp_converged_reason        `;
             r = run_petsc_ex(args, 2, "ex4")
 

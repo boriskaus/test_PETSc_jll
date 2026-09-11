@@ -7,6 +7,7 @@ authors = ["Boris Kaus <kaus@uni-mainz.de>"]
 CompilerSupportLibraries_jll = "e66e0078-7015-5450-92f7-15fbd957f2ae"
 MPICH_jll = "7cb0a576-ebde-5e09-9194-50597f1243b4"
 MPIPreferences = "3da0fdf6-3ccc-4f1b-acd9-58baa6c99267"
+MUMPS_jll = "ca64183c-ec4f-5579-95d5-17e128c21291"
 MicrosoftMPI_jll = "9237b28f-5490-5468-be7b-bb81f5f5e6cf"
 OpenBLAS32_jll = "656ef2d0-ae68-5445-9ca0-591084a874a2"
 OpenBLAS_jll = "4536629a-c528-5b80-bd46-f80d51c5b363"
