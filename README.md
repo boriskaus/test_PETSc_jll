@@ -90,6 +90,15 @@ julia --project=. -e 'using Pkg; Pkg.develop(path="/path/to/Yggdrasil/M/MUMPS/MU
 ```
 (This is why `MUMPS_jll` is a direct dependency in `Project.toml`. `test/runtests.jl` does the same when `MUMPS_JLL_LOCAL_PATH` is set; in CI it installs MUMPS_jll from https://github.com/boriskaus/MUMPS_jll.jl, the local multi-platform deploy of Yggdrasil #14746, until MUMPS_jll 5.9.3 is registered.)
 
+#### macOS: parallel MUMPS and MPICH's Fortran sentinels (2026-09)
+With the MUMPS_jll builds up to 5.9.3+0 every multi-rank MUMPS run of PETSc_jll crashed on macOS (SIGBUS/SIGSEGV in the
+solve phase, ParMETIS "empty subgraph"), while 1-rank runs and Linux were fine. MPICH implements `MPI_IN_PLACE`,
+`MPI_BOTTOM`, `MPI_STATUS_IGNORE`, ... as Fortran COMMON block members recognized by address; with macOS' two-level
+namespace `libdmumpspar.dylib` kept its own copy of those commons, so MPICH never recognized the sentinels MUMPS passed.
+The fix is to link MUMPS with `-Wl,-commons,use_dylibs` (what MPICH's own `mpifort` wrapper does on Darwin); the MUMPS_jll
+in https://github.com/boriskaus/MUMPS_jll.jl carries it. Without it, `-mat_mumps_icntl_20 0` (centralized RHS; use the
+solver's option prefix, e.g. `-fieldsplit_0_mat_mumps_icntl_20 0`) avoids the crashing code path.
+
 ### 3. Step-wise development of PETSc
 
 At the time of writing (6.1.2024) I was running into the issue that `PETSc_jll` with version 3.20.0 wouldn't even precompile anymore on windows, as can be seen here for [julia 1.9 and windows](https://github.com/boriskaus/test_PETSc_jll/actions/runs/7420510714/job/20192043786). At the same time, a simular testing framework was setup for [SuperLU_DIST_jll](https://github.com/boriskaus/test_SuperLU_DIST_jll) which worked [fine](https://github.com/boriskaus/test_SuperLU_DIST_jll/actions/runs/7422000918/job/20196454722) on windows/mac/linux for julia 1.9-1.11 in serial and parallel for version 8.2.1 which was [merged](https://github.com/JuliaPackaging/Yggdrasil/pull/7890) accordingly. Therefore it is clearly not an issue of the MicrosoftMPI being used. 
