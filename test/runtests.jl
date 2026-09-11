@@ -47,6 +47,20 @@ using PETSc_jll
 @show Base.BinaryPlatforms.HostPlatform()
 @show  PETSc_jll.host_platform
 @show  names(PETSc_jll)
+if Sys.isapple()
+    # Diagnostic (2026-09): which BLAS/ScaLAPACK/MPI libraries do the MUMPS flavours bind?
+    try
+        M = PETSc_jll.MUMPS_jll
+        for lib in (M.libdmumpspar_metis64_path, M.libdmumpspar_path)
+            println("\notool -L ", lib); run(`otool -L $lib`)
+        end
+        for lib in filter(l -> occursin(r"scalapack|blastrampoline|openblas", l), Base.Libc.Libdl.dllist())
+            println("\notool -L ", lib); run(`otool -L $lib`)
+        end
+    catch e
+        @warn "otool listing failed" exception=e
+    end
+end
 
 #setup MPI
 if isdefined(PETSc_jll,:MPICH_jll)
@@ -144,6 +158,12 @@ function add_LBT_flags(cmd::Cmd)
         LIBPATH_env => append_libpath(libdirs, cmd.env),
         "LBT_DEFAULT_LIBS" => backing_libs,
     )
+    if Sys.isapple()
+        # Diagnostic (2026-09): parallel MUMPS/SuperLU_DIST runs crash on the macOS CI
+        # runners; make libblastrampoline report which LP64/ILP64 libraries it actually
+        # forwards to inside the mpiexec children.
+        env["LBT_VERBOSE"] = "1"
+    end
 
     if !Sys.iswindows()
         # adding the environmental variables on windows seems to cause a crash
@@ -345,6 +365,17 @@ end
             @test r.exitcode == 0
         end
     end
+    # Same solve with ICNTL(13)=1: MUMPS factorizes the root frontal matrix sequentially, so
+    # ScaLAPACK/BLACS are never called.  Diagnostic for the parallel-MUMPS SIGSEGVs on the
+    # macOS x86_64 CI runners (2026-09): passing here while the plain run fails points at the
+    # SCALAPACK32_jll path.
+    @testset "ex42 2: mumps (ICNTL(13)=1, no ScaLAPACK)" begin
+        if test_mumps & is_parallel
+            args = `-stokes_ksp_monitor_short -stokes_ksp_converged_reason -stokes_pc_type lu -stokes_pc_factor_mat_solver_type mumps -stokes_mat_mumps_icntl_13 1`;
+            r = run_petsc_ex(args, 2, "ex42")
+            @test r.exitcode == 0
+        end
+    end
 
     @testset "ex42 2: superlu_dist" begin
         if test_superlu_dist & is_parallel & test_superlu_dist_int64
@@ -368,6 +399,13 @@ end
     @testset "ex19 2: mumps parallel LU (ScaLAPACK regression)" begin
         if test_mumps & is_parallel
             args = `-snes_type ksponly -ksp_type preonly -pc_type lu -pc_factor_mat_solver_type mumps -da_grid_x 16 -da_grid_y 16`;
+            r = run_petsc_ex(args, 2, "ex19")
+            @test r.exitcode == 0
+        end
+    end
+    @testset "ex19 2: mumps parallel LU (ICNTL(13)=1, no ScaLAPACK)" begin
+        if test_mumps & is_parallel
+            args = `-snes_type ksponly -ksp_type preonly -pc_type lu -pc_factor_mat_solver_type mumps -da_grid_x 16 -da_grid_y 16 -mat_mumps_icntl_13 1`;
             r = run_petsc_ex(args, 2, "ex19")
             @test r.exitcode == 0
         end
@@ -452,6 +490,13 @@ end
             @test r.exitcode == 0
         end
     end
+    @testset "ex4  4: direct mumps (ICNTL(13)=1, no ScaLAPACK)" begin
+        if test_mumps & is_parallel
+            args  = `-dim 2 -coefficients layers -nondimensional 0 -stag_grid_x 13 -stag_grid_y 8 -pc_type lu -pc_factor_mat_solver_type mumps -mat_mumps_icntl_13 1 -ksp_converged_reason`;
+            r = run_petsc_ex(args, 4, "ex4")
+            @test r.exitcode == 0
+        end
+    end
 
     @testset "ex4  4: direct superlu_dist" begin
         if test_superlu_dist & is_parallel & test_superlu_dist_int64
@@ -487,6 +532,13 @@ end
     @testset "ex4  2: nondim_abf_lu mumps" begin
         if test_mumps & is_parallel
             args = `-dim 2 -coefficients layers -pc_type fieldsplit -pc_fieldsplit_type schur -ksp_converged_reason -fieldsplit_element_ksp_type preonly  -pc_fieldsplit_detect_saddle_point false -ksp_type fgmres -fieldsplit_element_pc_type none -pc_fieldsplit_schur_fact_type upper -nondimensional -eta1 1e-2 -eta2 1.0 -isoviscous 0 -ksp_monitor -fieldsplit_element_pc_type jacobi -build_auxiliary_operator -fieldsplit_face_pc_type lu -fieldsplit_face_pc_factor_mat_solver_type mumps -stag_grid_x 32 -stag_grid_y 32        `;
+            r = run_petsc_ex(args, 2, "ex4")
+            @test r.exitcode == 0
+        end
+    end
+    @testset "ex4  2: nondim_abf_lu mumps (ICNTL(13)=1, no ScaLAPACK)" begin
+        if test_mumps & is_parallel
+            args = `-dim 2 -coefficients layers -pc_type fieldsplit -pc_fieldsplit_type schur -ksp_converged_reason -fieldsplit_element_ksp_type preonly  -pc_fieldsplit_detect_saddle_point false -ksp_type fgmres -fieldsplit_element_pc_type none -pc_fieldsplit_schur_fact_type upper -nondimensional -eta1 1e-2 -eta2 1.0 -isoviscous 0 -ksp_monitor -fieldsplit_element_pc_type jacobi -build_auxiliary_operator -fieldsplit_face_pc_type lu -fieldsplit_face_pc_factor_mat_solver_type mumps -stag_grid_x 32 -stag_grid_y 32 -fieldsplit_face_mat_mumps_icntl_13 1`;
             r = run_petsc_ex(args, 2, "ex4")
             @test r.exitcode == 0
         end
