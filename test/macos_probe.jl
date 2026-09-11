@@ -14,7 +14,7 @@ using PETSc_jll, CompilerSupportLibraries_jll, OpenBLAS32_jll
 
 @show Base.BinaryPlatforms.HostPlatform()
 @show PETSc_jll.host_platform
-run(`sw_vers`); run(`sysctl -n machdep.cpu.brand_string`); run(`sysctl -n hw.ncpu`)
+Sys.isapple() && (run(`sw_vers`); run(`sysctl -n machdep.cpu.brand_string`); run(`sysctl -n hw.ncpu`))
 
 const shlib_ext = Sys.isapple() ? "dylib" : "so"
 const LIBPATH_env = PETSc_jll.JLLWrappers.JLLWrappers.LIBPATH_env
@@ -40,9 +40,9 @@ function probe(label, ex, n, args; env=Dict{String,String}(), show=false)
     out = IOBuffer()
     ok = success(pipeline(ignorestatus(cmd); stdout=out, stderr=out))
     txt = String(take!(out))
-    err = something(findfirst(l -> occursin(r"PETSC ERROR: (Caught signal|[A-Z][a-z].*)|MUMPS error|INFOG?\(1\)|DIVERGED|Abort\(", l),
-                              split(txt, '\n')), nothing)
-    firsterr = err === nothing ? "" : strip(split(txt, '\n')[err])
+    lines = split(txt, '\n')
+    err = findfirst(l -> occursin(r"PETSC ERROR: (Caught signal|[A-Z][a-z].*)|MUMPS error|INFOG?\(1\)|DIVERGED|Abort\(", l), lines)
+    firsterr = err === nothing ? "" : strip(lines[err])
     println(rpad(label, 62), ok ? "PASS" : "FAIL", "  ", first(firsterr, 90))
     show && println(txt)
     return ok
@@ -62,6 +62,12 @@ probe("ICNTL(7)=2 AMF",                          "ex19", 2, `$base -mat_mumps_ic
 probe("ICNTL(7)=4 PORD",                         "ex19", 2, `$base -mat_mumps_icntl_7 4`)
 probe("ICNTL(7)=6 QAMD",                         "ex19", 2, `$base -mat_mumps_icntl_7 6`)
 probe("ICNTL(13)=1 no ScaLAPACK",                "ex19", 2, `$base -mat_mumps_icntl_13 1`)
+probe("ICNTL(20)=0 centralized dense RHS",      "ex19", 2, `$base -mat_mumps_icntl_20 0`)
+probe("ICNTL(20)=10 distributed RHS",            "ex19", 2, `$base -mat_mumps_icntl_20 10`)
+probe("ICNTL(20)=0 + ICNTL(13)=1",               "ex19", 2, `$base -mat_mumps_icntl_20 0 -mat_mumps_icntl_13 1`)
+probe("gmres instead of preonly (several solves)", "ex19", 2, `-snes_type ksponly -ksp_type gmres -pc_type lu -pc_factor_mat_solver_type mumps -da_grid_x 16 -da_grid_y 16`)
+probe("8x8 grid (smaller)",                      "ex19", 2, `-snes_type ksponly -ksp_type preonly -pc_type lu -pc_factor_mat_solver_type mumps -da_grid_x 8 -da_grid_y 8`)
+probe("32x32 grid (larger)",                     "ex19", 2, `-snes_type ksponly -ksp_type preonly -pc_type lu -pc_factor_mat_solver_type mumps -da_grid_x 32 -da_grid_y 32`)
 probe("ICNTL(14)=500 6x workspace",              "ex19", 2, `$base -mat_mumps_icntl_14 500`)
 probe("ICNTL(24)=1 null-pivot detection",        "ex19", 2, `$base -mat_mumps_icntl_24 1`)
 probe("CNTL(1)=0 no numerical pivoting",         "ex19", 2, `$base -mat_mumps_cntl_1 0.0`)
