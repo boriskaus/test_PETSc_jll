@@ -14,7 +14,8 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1.12'
+          - '1.12'   # minimum: PETSc_jll links the ILP64 SuiteSparse_jll of Julia's stdlib
+          - '1'      # latest stable (1.13 as of Sep 2026)
           - 'nightly'
         os:
           - ubuntu-latest
