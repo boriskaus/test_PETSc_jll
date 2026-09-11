@@ -23,6 +23,16 @@ if haskey(ENV, "MUMPS_JLL_LOCAL_PATH")
 elseif !haskey(ENV, "PETSC_JLL_LOCAL_PATH")
     Pkg.add(url="https://github.com/boriskaus/MUMPS_jll.jl")
 end
+# The registered TetGen_jll 1.6.0+1 aborts at load on Windows x86_64 ("Mingw-w64 runtime
+# failure: 32 bit pseudo relocation ... out of range"): libtet.dll imports libstdc++'s
+# typeinfo-for-int as data (TetGen does `throw 1;`) and the 32-bit runtime fixup cannot
+# reach a libstdc++-6.dll mapped >2 GB away.  PETSc_jll >= 3.24.6 depends on TetGen_jll, so
+# `using PETSc_jll` dies before any test runs.  Until a rebuilt TetGen_jll is registered
+# (Yggdrasil T/TetGen: link libstdc++/libgcc statically on mingw), install the fixed 1.6.0+2
+# from boriskaus/TetGen_jll.jl on Windows.
+if Sys.iswindows() && !haskey(ENV, "PETSC_JLL_LOCAL_PATH")
+    Pkg.add(url="https://github.com/boriskaus/TetGen_jll.jl")
+end
 if haskey(ENV, "PETSC_JLL_LOCAL_PATH")
     local_jll = expanduser(ENV["PETSC_JLL_LOCAL_PATH"])
     println("Using locally built PETSc_jll from $local_jll")
