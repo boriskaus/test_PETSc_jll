@@ -12,16 +12,10 @@ export mpirun, deactivate_multithreading, run_petsc_ex
 # (`julia build_tarballs.jl --deploy=local <triplet>`), point the environment
 # variable PETSC_JLL_LOCAL_PATH to the generated JLL directory, e.g.
 #   PETSC_JLL_LOCAL_PATH=<jll dir> julia --project=. -e 'using Pkg; Pkg.develop(path=ENV["PETSC_JLL_LOCAL_PATH"]); Pkg.test()'
-# PETSc_jll >= 3.25.4 links MUMPS_jll 5.9.3 (the `_metis64` flavour, Yggdrasil #14746).  Until that
-# version is registered, the PETSc_jll deployed to GitHub cannot pin it, so install MUMPS_jll from
-# the matching GitHub deploy (or, for local testing, point MUMPS_JLL_LOCAL_PATH at a locally
-# built one) before PETSc_jll is resolved.
 if haskey(ENV, "MUMPS_JLL_LOCAL_PATH")
     local_mumps = expanduser(ENV["MUMPS_JLL_LOCAL_PATH"])
     println("Using locally built MUMPS_jll from $local_mumps")
     Pkg.develop(path=local_mumps)
-elseif !haskey(ENV, "PETSC_JLL_LOCAL_PATH")
-    Pkg.add(url="https://github.com/boriskaus/MUMPS_jll.jl")
 end
 if haskey(ENV, "PETSC_JLL_LOCAL_PATH")
     local_jll = expanduser(ENV["PETSC_JLL_LOCAL_PATH"])
