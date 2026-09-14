@@ -233,6 +233,30 @@ else
     is_parallel = true;         # activate parallel tests
     mpi_single_core = true;     
 end
+# HDF5 output through PETSc's viewer.  PETSc_jll is only built with HDF5 once HDF5_jll
+# provides a parallel build on every platform (Yggdrasil #14782), so detect it at run time:
+# without HDF5 the viewer spec `hdf5:...` makes PETSc stop with
+# "Unknown PetscViewer type given: hdf5".
+const HDF5_SIGNATURE = UInt8[0x89, 0x48, 0x44, 0x46, 0x0d, 0x0a, 0x1a, 0x0a]
+
+is_hdf5_file(fname) = isfile(fname) && open(io -> read(io, 8), fname) == HDF5_SIGNATURE
+
+function petsc_has_hdf5()
+    dir = mktempdir()
+    try
+        cd(dir) do
+            r = run_petsc_ex(`-da_refine 1 -snes_view_solution hdf5:sol.h5`, 1, "ex19",
+                             mpi_single_core=mpi_single_core)
+            return r.exitcode == 0 && is_hdf5_file("sol.h5")
+        end
+    catch
+        return false
+    end
+end
+
+test_hdf5 = petsc_has_hdf5()
+@show test_hdf5
+
 @testset verbose = true "ex19, ex42, ex4" begin
 
     #@testset "test_MWE" begin
@@ -577,5 +601,30 @@ end
         end
     end
     
+
+    @testset "ex19 1: hdf5 viewer" begin
+        if test_hdf5
+            dir = mktempdir()
+            cd(dir) do
+                args = `-da_refine 2 -snes_view_solution hdf5:sol.h5`
+                r = run_petsc_ex(args, 1, "ex19", mpi_single_core=mpi_single_core)
+                @test r.exitcode == 0
+                @test is_hdf5_file("sol.h5")
+            end
+        end
+    end
+
+    @testset "ex19 2: hdf5 viewer (parallel MPI-IO)" begin
+        if test_hdf5 & is_parallel
+            dir = mktempdir()
+            cd(dir) do
+                args = `-da_refine 2 -snes_view_solution hdf5:sol.h5`
+                r = run_petsc_ex(args, 2, "ex19")
+                @test r.exitcode == 0
+                @test is_hdf5_file("sol.h5")
+            end
+        end
+    end
+
 end
 
