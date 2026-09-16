@@ -257,14 +257,14 @@ end
 test_hdf5 = petsc_has_hdf5()
 @show test_hdf5
 
-# GPU (CUDA) tests.  They need three things: a PETSc_jll built with CUDA (PETSc_GPU_jll),
+# GPU (CUDA) tests.  `-use_gpu_aware_mpi 0` because the MPI JLLs are not built CUDA-aware.  They need three things: a PETSc_jll built with CUDA (PETSc_GPU_jll),
 # an NVIDIA driver, and a device.  Without a device PETSc stops with "unable to initialize
 # CUDA"/"CUDA error", so probe once and skip the testsets when there is nothing to run on.
 function petsc_has_cuda()
     dir = mktempdir()
     try
         cd(dir) do
-            r = run_petsc_ex(`-da_refine 1 -dm_vec_type cuda -dm_mat_type aijcusparse -ksp_type cg -pc_type jacobi`,
+            r = run_petsc_ex(`-da_refine 1 -dm_vec_type cuda -dm_mat_type aijcusparse -use_gpu_aware_mpi 0 -ksp_type cg -pc_type jacobi`,
                              1, "ex19", mpi_single_core=mpi_single_core)
             return r.exitcode == 0
         end
@@ -651,7 +651,7 @@ test_cuda = has_nvidia_gpu && petsc_has_cuda()
 
     @testset "ex19 1: cuda vectors and matrices" begin
         if test_cuda
-            args = `-da_refine 3 -dm_vec_type cuda -dm_mat_type aijcusparse -ksp_type fgmres -pc_type mg`
+            args = `-da_refine 3 -dm_vec_type cuda -dm_mat_type aijcusparse -use_gpu_aware_mpi 0 -ksp_type fgmres -pc_type mg`
             r = run_petsc_ex(args, 1, "ex19", mpi_single_core=mpi_single_core)
             @test r.exitcode == 0
         end
@@ -659,7 +659,7 @@ test_cuda = has_nvidia_gpu && petsc_has_cuda()
 
     @testset "ex19 2: cuda, parallel" begin
         if test_cuda & is_parallel
-            args = `-da_refine 3 -dm_vec_type cuda -dm_mat_type aijcusparse -ksp_type fgmres -pc_type bjacobi`
+            args = `-da_refine 3 -dm_vec_type cuda -dm_mat_type aijcusparse -use_gpu_aware_mpi 0 -ksp_type fgmres -pc_type bjacobi`
             r = run_petsc_ex(args, 2, "ex19")
             @test r.exitcode == 0
         end
@@ -667,7 +667,7 @@ test_cuda = has_nvidia_gpu && petsc_has_cuda()
 
     @testset "ex4  1: cuda direct solve on the GPU" begin
         if test_cuda
-            args = `-dim 2 -coefficients layers -nondimensional 0 -stag_grid_x 12 -stag_grid_y 7 -dm_vec_type cuda -dm_mat_type aijcusparse -pc_type lu -pc_factor_mat_solver_type cusparse -ksp_converged_reason`
+            args = `-dim 2 -coefficients layers -nondimensional 0 -stag_grid_x 12 -stag_grid_y 7 -dm_vec_type cuda -dm_mat_type aijcusparse -use_gpu_aware_mpi 0 -pc_type lu -pc_factor_mat_solver_type cusparse -ksp_converged_reason`
             r = run_petsc_ex(args, 1, "ex4", mpi_single_core=mpi_single_core)
             @test r.exitcode == 0
         end
